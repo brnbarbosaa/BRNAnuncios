@@ -53,11 +53,12 @@ app.use('/api/admin', require('./src/routes/admin.routes'));
 app.use('/api/admin/logs', require('./src/routes/logs.routes'));
 
 // ─── Serve o frontend em produção ─────────────────────────────────────────────
-const FRONTEND_DIST = path.join(__dirname, '..', 'frontend', 'dist');
+const FRONTEND_DIST = path.join(__dirname, 'public');
 const fs = require('fs');
 if (fs.existsSync(FRONTEND_DIST)) {
     app.use(express.static(FRONTEND_DIST));
-    app.get('*', (req, res) => {
+    // SPA fallback — qualquer rota não-API retorna o index.html
+    app.get(/^(?!\/api).*/, (req, res) => {
         res.sendFile(path.join(FRONTEND_DIST, 'index.html'));
     });
 } else {
@@ -70,12 +71,29 @@ app.use((err, req, res, next) => {
     res.status(err.status || 500).json({ error: err.message || 'Erro interno do servidor.' });
 });
 
-// ─── Inicialização ────────────────────────────────────────────────────────────
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n🚀 BRN Anúncios rodando na porta ${PORT}`);
-    console.log(`📁 Uploads: ${UPLOADS_PATH}`);
-    console.log(`⏰ Timezone: ${process.env.TZ}`);
-    console.log(`🌍 Ambiente: ${process.env.NODE_ENV || 'production'}\n`);
+// ─── Inicialização com Auto-Migração ─────────────────────────────────────────
+const { runMigration } = require('./src/utils/migrate');
+
+async function startServer() {
+    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('  BRN Anúncios — Iniciando servidor...');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+    // Executa migração/seed automaticamente antes de abrir a porta
+    await runMigration();
+
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`\n🚀 Servidor rodando na porta ${PORT}`);
+        console.log(`📁 Uploads: ${UPLOADS_PATH}`);
+        console.log(`⏰ Timezone: ${process.env.TZ}`);
+        console.log(`🌍 Ambiente: ${process.env.NODE_ENV || 'production'}`);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    });
+}
+
+startServer().catch(err => {
+    console.error('❌ Falha crítica ao iniciar servidor:', err);
+    process.exit(1);
 });
 
 module.exports = app;
