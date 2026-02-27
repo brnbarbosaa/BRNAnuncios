@@ -37,6 +37,13 @@ const uploadLogo = multer({
     fileFilter: imageFilter,
 }).single('logo');
 
+// ─── Upload de banner (destaques) ───────────────────────────────────────────
+const uploadBanner = multer({
+    storage: storageFactory('banner'),
+    limits: { fileSize: 8 * 1024 * 1024 }, // 8 MB
+    fileFilter: imageFilter,
+}).single('banner');
+
 // ─── Upload de galeria (múltiplos arquivos) ───────────────────────────────────
 const uploadGallery = multer({
     storage: storageFactory('gallery'),
@@ -60,5 +67,6 @@ function wrapMulter(uploadFn) {
 
 module.exports = {
     uploadLogo: wrapMulter(uploadLogo),
+    uploadBanner: wrapMulter(uploadBanner),
     uploadGallery: wrapMulter(uploadGallery),
 };

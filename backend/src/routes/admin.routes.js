@@ -4,8 +4,9 @@ const bcrypt = require('bcryptjs');
 const slugify = require('slugify');
 const { authMiddleware } = require('../middleware/auth.middleware');
 const { roleMiddleware } = require('../middleware/role.middleware');
-const { uploadLogo, uploadGallery } = require('../middleware/upload.middleware');
-const { deleteFile, deleteBusinessFolder } = require('../utils/fileManager');
+const fs = require('fs');
+const { uploadLogo, uploadGallery, uploadBanner } = require('../middleware/upload.middleware');
+const { getUploadPath, deleteBusinessFolder, deleteFile } = require('../utils/fileManager');
 const { createLog } = require('../utils/logger');
 
 router.use(authMiddleware, roleMiddleware('admin'));
@@ -373,6 +374,17 @@ router.post('/highlights', async (req, res) => {
     );
     await db.execute('UPDATE businesses SET featured = 1 WHERE id = ?', [business_id]);
     return res.status(201).json({ message: 'Destaque criado.', id: r.insertId });
+});
+
+router.post('/highlights/upload', (req, res, next) => {
+    // Nós passamos o business_id pelo body no formdata
+    req.params.businessId = req.body.business_id;
+    if (!req.params.businessId) return res.status(400).json({ error: 'business_id ausente no FormData.' });
+    next();
+}, uploadBanner, async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'Arquivo não enviado.' });
+    const relativePath = `/uploads/${req.params.businessId}/${req.file.filename}`;
+    return res.json({ message: 'Banner enviado.', path: relativePath });
 });
 
 router.put('/highlights/:id', async (req, res) => {

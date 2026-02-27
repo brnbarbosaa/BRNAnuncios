@@ -200,6 +200,42 @@ export default function AdminDestaques() {
                                 <input className="form-input" value={form.subtitle} onChange={e => setF('subtitle', e.target.value)} placeholder="Ex: Entregas em toda a região" />
                             </div>
 
+                            {/* Banner Image Upload */}
+                            <div className="form-group">
+                                <label className="form-label">Imagem de Fundo / Banner do Carrossel</label>
+                                <div style={{ display: 'flex', gap: 16, alignItems: 'center', background: 'var(--bg-surface)', padding: 12, borderRadius: 'var(--radius-md)', border: '1px dashed var(--border)' }}>
+                                    {form.banner_image ? (
+                                        <div style={{ position: 'relative', width: 120, height: 60, borderRadius: 6, overflow: 'hidden' }}>
+                                            <img src={`${import.meta.env.VITE_API_URL}${form.banner_image}`} alt="Banner" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            <button type="button" onClick={() => setF('banner_image', '')} style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', borderRadius: '50%', cursor: 'pointer', display: 'flex', padding: 2 }}>
+                                                <span className="material-icons-round" style={{ fontSize: 14 }}>close</span>
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div style={{ width: 120, height: 60, borderRadius: 6, background: 'var(--bg-glass-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                                            <span className="material-icons-round">image</span>
+                                        </div>
+                                    )}
+                                    <div style={{ flex: 1 }}>
+                                        <input type="file" accept="image/*" onChange={e => {
+                                            if (e.target.files[0]) {
+                                                if (!form.business_id) return setAlert({ type: 'warning', msg: 'Selecione o negócio na lista antes de enviar a imagem.' });
+                                                const formData = new FormData();
+                                                formData.append('business_id', form.business_id);
+                                                formData.append('banner', e.target.files[0]);
+                                                api.post('/admin/highlights/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+                                                    .then(res => setF('banner_image', res.data.path))
+                                                    .catch(err => setAlert({ type: 'error', msg: err.response?.data?.error || 'Erro ao enviar imagem.' }));
+                                            }
+                                        }} style={{ display: 'block', width: '100%', fontSize: '0.85rem' }} />
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                                            Tamanho recomendado: 1200x520px (Carrossel) ou 800x400px (Card).
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+
                             {/* Datas */}
                             <div className="form-grid cols-2">
                                 <div className="form-group">

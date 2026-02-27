@@ -197,7 +197,7 @@ export default function Home() {
                             <h2>🏙️ Novidades <span style={{ color: 'var(--primary-light)' }}>na Região</span></h2>
                             <p>Conheça os últimos negócios publicados no guia</p>
                         </div>
-                        <div className="cards-grid">
+                        <div className="businesses-grid">
                             {latest.map(b => <BusinessCard key={b.id} business={b} />)}
                         </div>
                         <div style={{ textAlign: 'center', marginTop: 32 }}>
