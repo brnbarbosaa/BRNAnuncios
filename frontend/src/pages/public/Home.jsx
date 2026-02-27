@@ -7,12 +7,19 @@ import './Home.css';
 
 export default function Home() {
     const [data, setData] = useState(null);
+    const [plans, setPlans] = useState([]);
     const [loading, setLoading] = useState(true);
     const [carouselIdx, setCarouselIdx] = useState(0);
     const intervalRef = useRef(null);
 
     useEffect(() => {
-        api.get('/public/home').then(r => setData(r.data)).finally(() => setLoading(false));
+        Promise.all([
+            api.get('/public/home'),
+            api.get('/public/plans').catch(() => ({ data: [] })),
+        ]).then(([homeRes, plansRes]) => {
+            setData(homeRes.data);
+            setPlans(plansRes.data || []);
+        }).finally(() => setLoading(false));
     }, []);
 
     // Auto-avanço do carrossel
@@ -172,6 +179,53 @@ export default function Home() {
                                 Ver todos os anúncios
                                 <span className="material-icons-round">arrow_forward</span>
                             </Link>
+                        </div>
+                    </div>
+                </section>
+            )}
+
+            {/* ── Planos ── */}
+            {plans.length > 0 && (
+                <section className="plans-section">
+                    <div className="container">
+                        <div className="section-title" style={{ textAlign: 'center' }}>
+                            <h2>Nossos <span style={{ color: 'var(--primary-light)' }}>Planos</span></h2>
+                            <p>Escolha o plano ideal para o seu negócio e aumente sua visibilidade</p>
+                        </div>
+                        <div className="plans-grid">
+                            {plans.map(plan => {
+                                const features = Array.isArray(plan.features) ? plan.features : JSON.parse(plan.features || '[]');
+                                const featureMap = {
+                                    gallery: '🖼️ Galeria de fotos',
+                                    maps: '📍 Localização no mapa',
+                                    social_extended: '📲 Redes sociais ilimitadas',
+                                    highlights: '⭐ Destaque no carrossel',
+                                };
+                                const contactHref = plan.contact_link || '/solicitar-cadastro';
+                                return (
+                                    <div key={plan.id} className={`plan-card ${plan.highlight ? 'plan-highlight' : ''}`}>
+                                        {plan.highlight && <div className="plan-badge-top">⭐ Mais Popular</div>}
+                                        <div>
+                                            <p className="plan-name">{plan.name}</p>
+                                            {plan.description && <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginTop: 6 }}>{plan.description}</p>}
+                                        </div>
+                                        <div className="plan-price">
+                                            {parseFloat(plan.price) === 0 ? 'Grátis' : <>R$ {parseFloat(plan.price).toFixed(2).replace('.', ',')}<span>/mês</span></>}
+                                        </div>
+                                        <ul className="plan-features">
+                                            <li><span className="material-icons-round">check_circle</span> Página de negócio completa</li>
+                                            <li><span className="material-icons-round">check_circle</span> Exibição nas buscas</li>
+                                            {features.map(f => featureMap[f] && (
+                                                <li key={f}><span className="material-icons-round">check_circle</span> {featureMap[f]}</li>
+                                            ))}
+                                        </ul>
+                                        <a href={contactHref} className={`btn btn-lg ${plan.highlight ? 'btn-primary' : 'btn-ghost'}`} style={{ textAlign: 'center' }}>
+                                            <span className="material-icons-round">rocket_launch</span>
+                                            {parseFloat(plan.price) === 0 ? 'Começar grátis' : 'Quero este plano'}
+                                        </a>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 </section>

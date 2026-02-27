@@ -43,24 +43,49 @@ async function runMigration() {
 
         if (users.length === 0) {
             console.log(`⚙️  [migrate] Nenhum admin. Criando admin: ${devEmail}`);
-
-            // Roda seed de categorias
             await runSQLFile(conn, path.join(__dirname, '../../database/seed.sql'));
-
-            // Ajusta o admin com dados e senha das env vars
             await conn.execute(
                 `UPDATE users SET name = ?, email = ?, password_hash = ? WHERE role = 'admin' LIMIT 1`,
                 [devName, devEmail, hash]
             );
-
             console.log(`✅ [migrate] Admin criado: ${devEmail}`);
         } else {
-            // Garante que as credenciais do admin sempre reflitam as env vars
             await conn.execute(
                 `UPDATE users SET name = ?, email = ?, password_hash = ? WHERE role = 'admin' LIMIT 1`,
                 [devName, devEmail, hash]
             );
             console.log(`✅ [migrate] Admin atualizado com credenciais das env vars: ${devEmail}`);
+        }
+
+        // ── Cria tabela de planos se não existir ─────────────────────────────
+        await conn.execute(`
+            CREATE TABLE IF NOT EXISTS plans (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                slug VARCHAR(120) NOT NULL UNIQUE,
+                description TEXT DEFAULT NULL,
+                price DECIMAL(10,2) DEFAULT 0.00,
+                features JSON DEFAULT NULL,
+                highlight TINYINT(1) DEFAULT 0,
+                active TINYINT(1) DEFAULT 1,
+                sort_order INT UNSIGNED DEFAULT 0,
+                contact_link VARCHAR(255) DEFAULT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        // Seed dos planos iniciais (só se tabela estiver vazia)
+        const [[{ planCount }]] = await conn.execute('SELECT COUNT(*) AS planCount FROM plans');
+        if (planCount === 0) {
+            console.log('⚙️  [migrate] Criando planos iniciais...');
+            await conn.execute(`
+                INSERT INTO plans (name, slug, description, price, features, highlight, sort_order, contact_link) VALUES
+                ('Gratuito', 'gratuito', 'Ideal para começar! Cadastre seu negócio gratuitamente.', 0.00, '[]', 0, 1, NULL),
+                ('Básico', 'basico', 'Mais visibilidade com galeria de fotos e destaque nos cards.', 49.90, '["gallery"]', 0, 2, NULL),
+                ('Premium', 'premium', 'Experiência completa: galeria, mapa, redes sociais ilimitadas e destaque no carrossel.', 99.90, '["gallery","maps","social_extended","highlights"]', 1, 3, NULL)
+            `);
+            console.log('✅ [migrate] Planos iniciais criados.');
         }
 
 

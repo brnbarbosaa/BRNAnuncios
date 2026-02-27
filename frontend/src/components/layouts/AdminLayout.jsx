@@ -10,6 +10,7 @@ const navItems = [
     { to: '/admin/usuarios', icon: 'people', label: 'Usuários' },
     { to: '/admin/categorias', icon: 'category', label: 'Categorias' },
     { to: '/admin/destaques', icon: 'star', label: 'Destaques' },
+    { to: '/admin/planos', icon: 'workspace_premium', label: 'Planos' },
     { to: '/admin/configuracoes', icon: 'settings', label: 'Configurações' },
     { to: '/admin/logs', icon: 'terminal', label: 'Logs do Sistema' },
 ];

@@ -388,6 +388,49 @@ router.delete('/highlights/:id', async (req, res) => {
 });
 
 // ═══════════════════════════════════════
+//  PLANOS
+// ═══════════════════════════════════════
+router.get('/plans', async (req, res) => {
+    const [rows] = await db.execute('SELECT * FROM plans ORDER BY sort_order ASC');
+    return res.json(rows);
+});
+
+router.post('/plans', async (req, res) => {
+    const { name, slug, description, price, features, highlight, active, sort_order, contact_link } = req.body;
+    if (!name || !slug) return res.status(400).json({ error: 'Nome e slug são obrigatórios.' });
+    try {
+        const [r] = await db.execute(
+            'INSERT INTO plans (name, slug, description, price, features, highlight, active, sort_order, contact_link) VALUES (?,?,?,?,?,?,?,?,?)',
+            [name, slug, description || null, parseFloat(price) || 0, JSON.stringify(features || []),
+                highlight ? 1 : 0, active !== false ? 1 : 0, parseInt(sort_order) || 0, contact_link || null]
+        );
+        return res.status(201).json({ message: 'Plano criado.', id: r.insertId });
+    } catch (err) {
+        if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Slug já existe.' });
+        return res.status(500).json({ error: 'Erro ao criar plano.' });
+    }
+});
+
+router.put('/plans/:id', async (req, res) => {
+    const { name, slug, description, price, features, highlight, active, sort_order, contact_link } = req.body;
+    try {
+        await db.execute(
+            'UPDATE plans SET name=?, slug=?, description=?, price=?, features=?, highlight=?, active=?, sort_order=?, contact_link=?, updated_at=NOW() WHERE id=?',
+            [name, slug, description || null, parseFloat(price) || 0, JSON.stringify(features || []),
+                highlight ? 1 : 0, active !== false ? 1 : 0, parseInt(sort_order) || 0, contact_link || null, req.params.id]
+        );
+        return res.json({ message: 'Plano atualizado.' });
+    } catch (err) {
+        return res.status(500).json({ error: 'Erro ao atualizar plano.' });
+    }
+});
+
+router.delete('/plans/:id', async (req, res) => {
+    await db.execute('DELETE FROM plans WHERE id=?', [req.params.id]);
+    return res.json({ message: 'Plano excluído.' });
+});
+
+// ═══════════════════════════════════════
 //  CONFIGURAÇÕES DO SISTEMA
 // ═══════════════════════════════════════
 router.get('/settings', async (req, res) => {

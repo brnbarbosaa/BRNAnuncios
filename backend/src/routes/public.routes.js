@@ -208,5 +208,21 @@ router.get('/health', (req, res) => {
     return res.json({ status: 'ok', uptime: process.uptime() });
 });
 
-module.exports = router;
+// GET /api/public/plans — lista planos ativos para a home
+router.get('/plans', async (req, res) => {
+    try {
+        const [rows] = await db.execute(
+            'SELECT id, name, slug, description, price, features, highlight, contact_link FROM plans WHERE active = 1 ORDER BY sort_order ASC'
+        );
+        // Parse features JSON para array
+        const plans = rows.map(p => ({
+            ...p,
+            features: typeof p.features === 'string' ? JSON.parse(p.features) : (p.features || []),
+        }));
+        return res.json(plans);
+    } catch (err) {
+        return res.status(500).json({ error: 'Erro ao carregar planos.' });
+    }
+});
 
+module.exports = router;

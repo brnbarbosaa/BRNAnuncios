@@ -20,7 +20,7 @@ export default function ClientHorarios() {
     useEffect(() => {
         api.get('/client/business').then(r => {
             setBusiness(r.data.business);
-            if (r.data.hours && r.data.hours.length > 0) {
+            if (r.data.hours?.length > 0) {
                 const merged = DEFAULT_HOURS.map(d => {
                     const found = r.data.hours.find(h => h.day_of_week === d.day_of_week);
                     return found ? { ...d, ...found } : d;
@@ -30,9 +30,8 @@ export default function ClientHorarios() {
         }).finally(() => setLoading(false));
     }, []);
 
-    const setHour = (day, key, val) => {
+    const setHour = (day, key, val) =>
         setHours(prev => prev.map(h => h.day_of_week === day ? { ...h, [key]: val } : h));
-    };
 
     const copyToAll = (src) => {
         const base = hours.find(h => h.day_of_week === src);
@@ -64,16 +63,24 @@ export default function ClientHorarios() {
 
             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
                 {hours.map((h, i) => (
-                    <div key={h.day_of_week} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 24px', borderBottom: i < 6 ? '1px solid var(--border-light)' : 'none' }}>
+                    <div key={h.day_of_week} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 24px', borderBottom: i < 6 ? '1px solid var(--border-light)' : 'none', flexWrap: 'wrap' }}>
+
                         {/* Dia */}
-                        <div style={{ width: 130, fontWeight: 600, color: h.closed ? 'var(--text-muted)' : 'var(--text-primary)', flexShrink: 0 }}>
+                        <div style={{ width: 140, fontWeight: 600, color: h.closed ? 'var(--text-muted)' : 'var(--text-primary)', flexShrink: 0 }}>
                             {DAYS[h.day_of_week]}
                         </div>
 
-                        {/* Toggle fechado */}
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0 }}>
-                            <input type="checkbox" checked={!h.closed} onChange={e => setHour(h.day_of_week, 'closed', !e.target.checked)} />
-                            <span style={{ fontSize: '0.85rem', color: h.closed ? 'var(--danger)' : 'var(--success)', fontWeight: 600 }}>
+                        {/* Toggle switch */}
+                        <label className="toggle-switch" title={h.closed ? 'Clique para abrir' : 'Clique para fechar'}>
+                            <input
+                                type="checkbox"
+                                checked={!h.closed}
+                                onChange={e => setHour(h.day_of_week, 'closed', !e.target.checked)}
+                            />
+                            <span className="toggle-track">
+                                <span className="toggle-thumb" />
+                            </span>
+                            <span className="toggle-label" style={{ color: h.closed ? 'var(--danger)' : 'var(--success)' }}>
                                 {h.closed ? 'Fechado' : 'Aberto'}
                             </span>
                         </label>
@@ -86,20 +93,21 @@ export default function ClientHorarios() {
                                     <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>até</span>
                                     <input type="time" className="form-input" style={{ width: 120 }} value={h.close_time} onChange={e => setHour(h.day_of_week, 'close_time', e.target.value)} />
                                 </div>
-                                <button className="btn btn-ghost btn-sm" onClick={() => copyToAll(h.day_of_week)} title="Copiar para todos os dias">
+                                <button type="button" className="btn btn-ghost btn-sm" onClick={() => copyToAll(h.day_of_week)} title="Copiar para todos os dias">
                                     <span className="material-icons-round" style={{ fontSize: 16 }}>content_copy</span>
                                     Copiar para todos
                                 </button>
                             </>
                         ) : (
-                            <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>—</span>
+                            <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Fechado este dia</span>
                         )}
                     </div>
                 ))}
             </div>
+
             <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: 12 }}>
                 <span className="material-icons-round" style={{ fontSize: 14, verticalAlign: 'middle' }}>info</span>
-                {' '}Clique em "Copiar para todos" para aplicar o mesmo horário a todos os dias.
+                {' '}Use o switch para marcar dias abertos/fechados. "Copiar para todos" aplica o mesmo horário em todos os dias.
             </p>
         </div>
     );
