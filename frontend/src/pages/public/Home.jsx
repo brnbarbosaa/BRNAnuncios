@@ -46,25 +46,28 @@ export default function Home() {
             {carousel.length > 0 && (
                 <section className="carousel-section">
                     <div className="carousel-track" style={{ transform: `translateX(-${carouselIdx * 100}%)` }}>
-                        {carousel.map((item, i) => (
-                            <div key={item.id} className="carousel-slide" style={{
-                                backgroundImage: item.banner_image ? `url(${item.banner_image})` : undefined,
-                                background: !item.banner_image ? 'radial-gradient(ellipse at 60% 30%, rgba(99,102,241,0.35) 0%, var(--bg-base) 70%)' : undefined,
-                            }}>
-                                <div className="carousel-overlay" />
-                                <div className="carousel-content container">
-                                    <div className="carousel-text">
-                                        <span className="carousel-label">Destaque</span>
-                                        <h1>{item.title || item.name}</h1>
-                                        <p>{item.subtitle || item.short_description}</p>
-                                        <Link to={`/anuncio/${item.slug}`} className="btn btn-primary btn-lg">
-                                            <span className="material-icons-round">arrow_forward</span>
-                                            Conhecer
-                                        </Link>
+                        {carousel.map((item, i) => {
+                            const bgImg = item.banner_image || item.logo || item.cover_image || null;
+                            return (
+                                <div key={item.id} className="carousel-slide" style={{
+                                    backgroundImage: bgImg ? `url(${bgImg})` : undefined,
+                                    background: !bgImg ? 'radial-gradient(ellipse at 60% 30%, rgba(99,102,241,0.35) 0%, var(--bg-base) 70%)' : undefined,
+                                }}>
+                                    <div className="carousel-overlay" />
+                                    <div className="carousel-content container">
+                                        <div className="carousel-text">
+                                            <span className="carousel-label">Destaque</span>
+                                            <h1>{item.title || item.name}</h1>
+                                            <p>{item.subtitle || item.short_description}</p>
+                                            <Link to={`/anuncio/${item.slug}`} className="btn btn-primary btn-lg">
+                                                <span className="material-icons-round">arrow_forward</span>
+                                                Conhecer
+                                            </Link>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
 
                     {/* Dots */}

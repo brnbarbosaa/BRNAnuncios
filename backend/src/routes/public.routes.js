@@ -8,7 +8,8 @@ router.get('/home', async (req, res) => {
         // DATE_SUB(NOW(), INTERVAL 3 HOUR) converte UTC→SP para comparar com ends_at
         const [carousel] = await db.execute(
             `SELECT h.id, h.title, h.subtitle, h.banner_image,
-              b.name, b.slug, b.short_description, b.logo, b.neighborhood
+              b.name, b.slug, b.short_description, b.logo, b.neighborhood,
+              (SELECT bi.path FROM business_images bi WHERE bi.business_id = b.id ORDER BY bi.sort_order ASC LIMIT 1) AS cover_image
        FROM highlights h
        LEFT JOIN businesses b ON b.id = h.business_id
        WHERE h.type = 'carousel' AND h.active = 1
