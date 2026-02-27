@@ -7,7 +7,7 @@ WORKDIR /app/frontend
 
 # Copia manifesto e instala deps
 COPY frontend/package*.json ./
-RUN npm ci --silent
+RUN npm install --silent
 
 # Copia código e gera build de produção
 COPY frontend/ .
@@ -26,7 +26,7 @@ WORKDIR /app
 
 # Instala deps de produção do backend
 COPY backend/package*.json ./
-RUN npm ci --only=production --silent
+RUN npm install --only=production --silent
 
 # Copia código do backend
 COPY backend/ .
