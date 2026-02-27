@@ -12,6 +12,9 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Confia no proxy reverso do Easypanel (nginx) para X-Forwarded-For
+app.set('trust proxy', 1);
+
 // ─── Segurança ────────────────────────────────────────────────────────────────
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
