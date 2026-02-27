@@ -6,6 +6,7 @@ import './ClientLayout.css';
 const navItems = [
     { to: '/cliente/dashboard', icon: 'dashboard', label: 'Dashboard' },
     { to: '/cliente/meu-anuncio', icon: 'store', label: 'Meu Anúncio' },
+    { to: '/cliente/estatisticas', icon: 'bar_chart', label: 'Estatísticas' },
     { to: '/cliente/galeria', icon: 'photo_library', label: 'Galeria' },
     { to: '/cliente/horarios', icon: 'schedule', label: 'Horários' },
     { to: '/cliente/perfil', icon: 'person', label: 'Perfil' },

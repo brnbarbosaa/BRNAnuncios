@@ -8,6 +8,7 @@ import './Home.css';
 export default function Home() {
     const [data, setData] = useState(null);
     const [plans, setPlans] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [carouselIdx, setCarouselIdx] = useState(0);
     const intervalRef = useRef(null);
@@ -16,9 +17,11 @@ export default function Home() {
         Promise.all([
             api.get('/public/home'),
             api.get('/public/plans').catch(() => ({ data: [] })),
-        ]).then(([homeRes, plansRes]) => {
+            api.get('/public/categories').catch(() => ({ data: [] })),
+        ]).then(([homeRes, plansRes, catRes]) => {
             setData(homeRes.data);
             setPlans(plansRes.data || []);
+            setCategories(catRes.data || []);
         }).finally(() => setLoading(false));
     }, []);
 
@@ -112,6 +115,29 @@ export default function Home() {
                 </section>
             )}
 
+            {/* ── Categorias ── */}
+            {categories.length > 0 && (
+                <section className="section" style={{ paddingBottom: 20 }}>
+                    <div className="container">
+                        <div className="section-title">
+                            <h2>Explorar por <span style={{ color: 'var(--primary-light)' }}>Categorias</span></h2>
+                            <p>Encontre rapidamente o que você precisa</p>
+                        </div>
+                        <div className="cards-scroll" style={{ paddingBottom: 20 }}>
+                            {categories.map(cat => (
+                                <Link key={cat.id} to={`/anuncios?category=${cat.slug}`} className="highlight-card" style={{ textAlign: 'center', padding: '24px 16px', textDecoration: 'none', background: 'var(--bg-card)' }}>
+                                    <div style={{ width: 64, height: 64, borderRadius: 'var(--radius-full)', background: `${cat.color || 'var(--primary-light)'}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', color: cat.color || 'var(--primary-light)' }}>
+                                        <span className="material-icons-round" style={{ fontSize: 32 }}>{cat.icon || 'category'}</span>
+                                    </div>
+                                    <h3 style={{ fontSize: '0.95rem', marginBottom: 4, color: 'var(--text-primary)' }}>{cat.name}</h3>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{cat.business_count} negócio{cat.business_count !== 1 ? 's' : ''}</span>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            )}
+
             {/* ── Cards Destaques Rotativos ── */}
             {cards.length > 0 && (
                 <section className="section">
@@ -168,16 +194,16 @@ export default function Home() {
                 <section className="section">
                     <div className="container">
                         <div className="section-title">
-                            <h2>Anúncios <span style={{ color: 'var(--primary-light)' }}>Recentes</span></h2>
-                            <p>Conheça os negócios mais recentemente cadastrados</p>
+                            <h2>🏙️ Novidades <span style={{ color: 'var(--primary-light)' }}>na Região</span></h2>
+                            <p>Conheça os últimos negócios publicados no guia</p>
                         </div>
-                        <div className="businesses-grid">
+                        <div className="cards-grid">
                             {latest.map(b => <BusinessCard key={b.id} business={b} />)}
                         </div>
-                        <div style={{ textAlign: 'center', marginTop: 40 }}>
+                        <div style={{ textAlign: 'center', marginTop: 32 }}>
                             <Link to="/anuncios" className="btn btn-ghost btn-lg">
                                 Ver todos os anúncios
-                                <span className="material-icons-round">arrow_forward</span>
+                                <span className="material-icons-round" style={{ fontSize: 18 }}>arrow_forward</span>
                             </Link>
                         </div>
                     </div>
@@ -186,11 +212,11 @@ export default function Home() {
 
             {/* ── Planos ── */}
             {plans.length > 0 && (
-                <section className="plans-section">
+                <section className="section" style={{ background: 'var(--bg-surface)' }}>
                     <div className="container">
-                        <div className="section-title" style={{ textAlign: 'center' }}>
-                            <h2>Nossos <span style={{ color: 'var(--primary-light)' }}>Planos</span></h2>
-                            <p>Escolha o plano ideal para o seu negócio e aumente sua visibilidade</p>
+                        <div className="section-title">
+                            <h2>Preços e <span style={{ color: 'var(--primary-light)' }}>Planos</span></h2>
+                            <p>Escolha o melhor plano para destacar seu negócio</p>
                         </div>
                         <div className="plans-grid">
                             {plans.map(plan => {
@@ -240,11 +266,11 @@ export default function Home() {
             {/* ── CTA Final ── */}
             <section className="cta-section">
                 <div className="container cta-content">
-                    <h2>Seu negócio ainda não está aqui?</h2>
-                    <p>Cadastre-se gratuitamente e alcance mais clientes no seu bairro.</p>
-                    <Link to="/solicitar-cadastro" className="btn btn-accent btn-lg">
-                        <span className="material-icons-round">add_business</span>
-                        Quero anunciar meu negócio
+                    <h2>Você tem um comércio, serviço ou atende na região?</h2>
+                    <p>Milhares de pessoas buscam serviços no bairro todos os dias. Não fique de fora, anuncie de forma simples e rápida.</p>
+                    <Link to="/solicitar-cadastro" className="btn btn-primary btn-lg" style={{ marginTop: 24 }}>
+                        <span className="material-icons-round" style={{ fontSize: 20 }}>rocket_launch</span>
+                        Criar meu anúncio agora
                     </Link>
                 </div>
             </section>

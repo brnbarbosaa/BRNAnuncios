@@ -211,5 +211,65 @@ router.put('/profile/password', async (req, res) => {
     }
 });
 
-module.exports = router;
+// GET /api/client/stats — estatísticas do negócio do cliente
+router.get('/stats', async (req, res) => {
+    try {
+        const [biz] = await db.execute(
+            `SELECT b.id, b.name, b.views, b.featured, b.plan, b.status, b.created_at
+             FROM businesses b WHERE b.user_id = ? LIMIT 1`,
+            [req.user.id]
+        );
+        if (!biz[0]) return res.status(404).json({ error: 'Negócio não encontrado.' });
 
+        const businessId = biz[0].id;
+        const totalViews = biz[0].views || 0;
+
+        // Estatísticas de log de acesso (últimos 30 dias agrupados por dia)
+        // Usa a tabela logs para contar ações VIEW_BUSINESS deste negócio
+        let viewsByDay = [];
+        try {
+            const [logRows] = await db.execute(
+                `SELECT DATE(CONVERT_TZ(created_at, '+00:00', '-03:00')) AS day,
+                        COUNT(*) AS views
+                 FROM logs
+                 WHERE action = 'VIEW_BUSINESS' AND entity_id = ?
+                   AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                 GROUP BY day
+                 ORDER BY day ASC`,
+                [businessId]
+            );
+            viewsByDay = logRows;
+        } catch (e) {
+            // Tabela logs não tem dados suficientes ou campo entity_id — OK
+        }
+
+        // Galeria
+        const [[{ photoCount }]] = await db.execute(
+            'SELECT COUNT(*) AS photoCount FROM business_images WHERE business_id = ?', [businessId]
+        );
+
+        // Destaques ativos
+        const [[{ highlightCount }]] = await db.execute(
+            `SELECT COUNT(*) AS highlightCount FROM highlights
+             WHERE business_id = ? AND active = 1
+               AND (ends_at IS NULL OR ends_at > DATE_SUB(NOW(), INTERVAL 3 HOUR))`,
+            [businessId]
+        );
+
+        return res.json({
+            totalViews,
+            viewsByDay,
+            photoCount,
+            highlightCount,
+            plan: biz[0].plan,
+            status: biz[0].status,
+            featured: !!biz[0].featured,
+            memberSince: biz[0].created_at,
+        });
+    } catch (err) {
+        console.error('[Client stats]', err);
+        return res.status(500).json({ error: 'Erro ao carregar estatísticas.' });
+    }
+});
+
+module.exports = router;

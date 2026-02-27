@@ -4,27 +4,28 @@ const db = require('../config/db');
 // GET /api/public/home — dados completos da home
 router.get('/home', async (req, res) => {
     try {
-        // Carrossel
+        // Carrossel — LEFT JOIN garante retorno mesmo se negócio for alterado;
+        // DATE_SUB(NOW(), INTERVAL 3 HOUR) converte UTC→SP para comparar com ends_at
         const [carousel] = await db.execute(
             `SELECT h.id, h.title, h.subtitle, h.banner_image,
               b.name, b.slug, b.short_description, b.logo, b.neighborhood
        FROM highlights h
-       JOIN businesses b ON b.id = h.business_id
+       LEFT JOIN businesses b ON b.id = h.business_id
        WHERE h.type = 'carousel' AND h.active = 1
-         AND (h.ends_at IS NULL OR h.ends_at > NOW())
+         AND (h.ends_at IS NULL OR h.ends_at > DATE_SUB(NOW(), INTERVAL 3 HOUR))
        ORDER BY h.sort_order ASC LIMIT 10`
         );
 
-        // Cards de destaque rotativos
+        // Cards de destaque rotativos com LEFT JOIN + timezone fix
         const [cards] = await db.execute(
             `SELECT h.id, h.title, h.subtitle,
               b.name, b.slug, b.short_description, b.logo,
               b.neighborhood, b.city, cat.name AS category_name, cat.color AS category_color, cat.icon AS category_icon
        FROM highlights h
-       JOIN businesses b ON b.id = h.business_id
+       LEFT JOIN businesses b ON b.id = h.business_id
        LEFT JOIN categories cat ON cat.id = b.category_id
        WHERE h.type = 'card' AND h.active = 1
-         AND (h.ends_at IS NULL OR h.ends_at > NOW())
+         AND (h.ends_at IS NULL OR h.ends_at > DATE_SUB(NOW(), INTERVAL 3 HOUR))
        ORDER BY h.sort_order ASC LIMIT 20`
         );
 
@@ -52,8 +53,27 @@ router.get('/home', async (req, res) => {
     }
 });
 
+// GET /api/public/categories — categorias com contagem de negócios
+router.get('/categories', async (req, res) => {
+    try {
+        const [rows] = await db.execute(
+            `SELECT cat.id, cat.name, cat.slug, cat.icon, cat.color,
+                    COUNT(b.id) AS business_count
+             FROM categories cat
+             LEFT JOIN businesses b ON b.category_id = cat.id AND b.status = 'active'
+             GROUP BY cat.id
+             HAVING business_count > 0
+             ORDER BY business_count DESC, cat.name ASC`
+        );
+        return res.json(rows);
+    } catch (err) {
+        return res.status(500).json({ error: 'Erro ao carregar categorias.' });
+    }
+});
+
 // GET /api/public/businesses — listagem com paginação e filtros
 router.get('/businesses', async (req, res) => {
+
     try {
         const { q, category, city, page = 1 } = req.query;
         const limit = 12;

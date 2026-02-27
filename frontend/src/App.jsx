@@ -20,6 +20,7 @@ import ClientAnuncio from './pages/client/MeuAnuncio';
 import ClientGaleria from './pages/client/Galeria';
 import ClientHorarios from './pages/client/Horarios';
 import ClientPerfil from './pages/client/Perfil';
+import ClientEstatisticas from './pages/client/Estatisticas';
 
 // Área do admin
 import AdminDashboard from './pages/admin/Dashboard';
@@ -65,6 +66,7 @@ export default function App() {
                         <Route path="galeria" element={<ClientGaleria />} />
                         <Route path="horarios" element={<ClientHorarios />} />
                         <Route path="perfil" element={<ClientPerfil />} />
+                        <Route path="estatisticas" element={<ClientEstatisticas />} />
                     </Route>
 
                     {/* ── Área do Admin ── */}

@@ -3,12 +3,23 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { phoneInputProps } from '../../utils/phoneMask';
 
+// ── Definido FORA do componente para evitar remount a cada render (fix foco) ──
+function Section({ title, children }) {
+    return (
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '24px', marginBottom: 20 }}>
+            <h3 style={{ marginBottom: 20, fontSize: '1rem', paddingBottom: 12, borderBottom: '1px solid var(--border-light)' }}>{title}</h3>
+            {children}
+        </div>
+    );
+}
+
 export default function AdminAnuncioEdit() {
     const { id } = useParams();
     const isNew = id === 'novo';
     const navigate = useNavigate();
     const [categories, setCategories] = useState([]);
     const [users, setUsers] = useState([]);
+
     const [form, setForm] = useState({ name: '', user_id: '', category_id: '', short_description: '', description: '', phone: '', whatsapp: '', email: '', website: '', instagram: '', facebook: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '', zip_code: '', tags: '', status: 'active', plan: 'free', featured: false });
     const [loading, setLoading] = useState(!isNew);
     const [saving, setSaving] = useState(false);
@@ -45,13 +56,6 @@ export default function AdminAnuncioEdit() {
     };
 
     if (loading) return <div className="page-loading"><div className="spinner" /></div>;
-
-    const Section = ({ title, children }) => (
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '24px', marginBottom: 20 }}>
-            <h3 style={{ marginBottom: 20, fontSize: '1rem', paddingBottom: 12, borderBottom: '1px solid var(--border-light)' }}>{title}</h3>
-            {children}
-        </div>
-    );
 
     return (
         <div>
