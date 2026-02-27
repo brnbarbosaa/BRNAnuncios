@@ -45,9 +45,5 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV UPLOADS_PATH=/app/uploads
 
-# Healthcheck simples
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-  CMD wget -qO- http://localhost:3000/api/public/health 2>/dev/null | grep -q "ok" || exit 1
-
 # Inicia o servidor
 CMD ["node", "server.js"]
