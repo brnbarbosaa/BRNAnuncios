@@ -54,13 +54,16 @@ function ensureDir(dirPath) {
 /**
  * Retorna o caminho absoluto de upload para um negócio.
  * @param {number|string} businessId
- * @param {'logo'|'gallery'} type
+ * @param {'logo'|'gallery'|'banner'} type
  * @returns {string}
  */
 function getUploadPath(businessId, type = 'gallery') {
-    const dir = type === 'logo'
-        ? path.join(UPLOADS_ROOT, String(businessId))
-        : path.join(UPLOADS_ROOT, String(businessId), 'gallery');
+    let dir;
+    if (type === 'logo' || type === 'banner') {
+        dir = path.join(UPLOADS_ROOT, String(businessId));
+    } else {
+        dir = path.join(UPLOADS_ROOT, String(businessId), 'gallery');
+    }
     ensureDir(dir);
     return dir;
 }
