@@ -376,13 +376,9 @@ router.post('/highlights', async (req, res) => {
     return res.status(201).json({ message: 'Destaque criado.', id: r.insertId });
 });
 
-router.post('/highlights/upload', (req, res, next) => {
-    // Nós passamos o business_id pelo body no formdata
-    req.params.businessId = req.body.business_id;
-    if (!req.params.businessId) return res.status(400).json({ error: 'business_id ausente no FormData.' });
-    next();
-}, uploadBanner, async (req, res) => {
+router.post('/highlights/:businessId/upload', uploadBanner, async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'Arquivo não enviado.' });
+    if (!req.params.businessId) return res.status(400).json({ error: 'business_id inválido.' });
     const relativePath = `/uploads/${req.params.businessId}/${req.file.filename}`;
     return res.json({ message: 'Banner enviado.', path: relativePath });
 });

@@ -221,9 +221,8 @@ export default function AdminDestaques() {
                                             if (e.target.files[0]) {
                                                 if (!form.business_id) return setAlert({ type: 'warning', msg: 'Selecione o negócio na lista antes de enviar a imagem.' });
                                                 const formData = new FormData();
-                                                formData.append('business_id', form.business_id);
                                                 formData.append('banner', e.target.files[0]);
-                                                api.post('/admin/highlights/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+                                                api.post(`/admin/highlights/${form.business_id}/upload`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
                                                     .then(res => setF('banner_image', res.data.path))
                                                     .catch(err => setAlert({ type: 'error', msg: err.response?.data?.error || 'Erro ao enviar imagem.' }));
                                             }
