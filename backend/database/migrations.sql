@@ -1,7 +1,7 @@
 -- ============================================================
 -- BRN Anúncios — Schema do Banco de Dados
 -- Charset: utf8mb4 | Collation: utf8mb4_unicode_ci
--- Fuso horário: America/Sao_Paulo
+-- Fuso horário: America/Sao_Paulo (-03:00)
 -- ============================================================
 
 SET NAMES utf8mb4;
@@ -17,8 +17,8 @@ CREATE TABLE IF NOT EXISTS categories (
   icon VARCHAR(80) DEFAULT NULL COMMENT 'Nome do ícone (ex: store, restaurant)',
   color VARCHAR(20) DEFAULT '#6366f1',
   active TINYINT(1) DEFAULT 1,
-  created_at DATETIME DEFAULT (CONVERT_TZ(NOW(), '+00:00', '-03:00')),
-  updated_at DATETIME DEFAULT (CONVERT_TZ(NOW(), '+00:00', '-03:00')) ON UPDATE (CONVERT_TZ(NOW(), '+00:00', '-03:00'))
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------------------------
@@ -34,8 +34,8 @@ CREATE TABLE IF NOT EXISTS users (
   avatar VARCHAR(255) DEFAULT NULL,
   active TINYINT(1) DEFAULT 1,
   last_login DATETIME DEFAULT NULL,
-  created_at DATETIME DEFAULT (CONVERT_TZ(NOW(), '+00:00', '-03:00')),
-  updated_at DATETIME DEFAULT (CONVERT_TZ(NOW(), '+00:00', '-03:00')) ON UPDATE (CONVERT_TZ(NOW(), '+00:00', '-03:00'))
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------------------------
@@ -71,8 +71,8 @@ CREATE TABLE IF NOT EXISTS businesses (
   featured TINYINT(1) DEFAULT 0,
   featured_order INT UNSIGNED DEFAULT NULL,
   plan ENUM('free','basic','premium') DEFAULT 'free',
-  created_at DATETIME DEFAULT (CONVERT_TZ(NOW(), '+00:00', '-03:00')),
-  updated_at DATETIME DEFAULT (CONVERT_TZ(NOW(), '+00:00', '-03:00')) ON UPDATE (CONVERT_TZ(NOW(), '+00:00', '-03:00')),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_business_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   CONSTRAINT fk_business_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS business_images (
   path VARCHAR(255) NOT NULL COMMENT 'Caminho relativo: /uploads/{business_id}/gallery/...',
   caption VARCHAR(200) DEFAULT NULL,
   sort_order INT UNSIGNED DEFAULT 0,
-  created_at DATETIME DEFAULT (CONVERT_TZ(NOW(), '+00:00', '-03:00')),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_img_business FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS highlights (
   active TINYINT(1) DEFAULT 1,
   starts_at DATETIME DEFAULT NULL,
   ends_at DATETIME DEFAULT NULL,
-  created_at DATETIME DEFAULT (CONVERT_TZ(NOW(), '+00:00', '-03:00')),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_highlight_business FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -160,7 +160,7 @@ CREATE TABLE IF NOT EXISTS requests (
   reviewed_by INT UNSIGNED DEFAULT NULL,
   reviewed_at DATETIME DEFAULT NULL,
   ip_address VARCHAR(45) DEFAULT NULL,
-  created_at DATETIME DEFAULT (CONVERT_TZ(NOW(), '+00:00', '-03:00')),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_request_reviewer FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL,
   CONSTRAINT fk_request_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -179,7 +179,7 @@ CREATE TABLE IF NOT EXISTS system_logs (
   ip_address VARCHAR(45) DEFAULT NULL,
   user_agent VARCHAR(500) DEFAULT NULL,
   level ENUM('info','warning','error','success') DEFAULT 'info',
-  created_at DATETIME DEFAULT (CONVERT_TZ(NOW(), '+00:00', '-03:00')),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_log_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
   INDEX idx_log_action (action),
   INDEX idx_log_level (level),
@@ -193,7 +193,7 @@ CREATE TABLE IF NOT EXISTS settings (
   `key` VARCHAR(100) PRIMARY KEY,
   `value` TEXT DEFAULT NULL,
   description VARCHAR(300) DEFAULT NULL,
-  updated_at DATETIME DEFAULT (CONVERT_TZ(NOW(), '+00:00', '-03:00')) ON UPDATE (CONVERT_TZ(NOW(), '+00:00', '-03:00'))
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Configurações padrão
