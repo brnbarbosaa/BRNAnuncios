@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
+import { phoneInputProps } from '../../utils/phoneMask';
 
 export default function ClientPerfil() {
     const { user } = useAuth();
@@ -61,7 +62,7 @@ export default function ClientPerfil() {
                     <div className="form-grid cols-2" style={{ marginBottom: 16 }}>
                         <div className="form-group"><label className="form-label">Nome completo</label><input className="form-input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
                         <div className="form-group"><label className="form-label">E-mail</label><input className="form-input" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
-                        <div className="form-group"><label className="form-label">Telefone</label><input className="form-input" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="(11) 99999-9999" /></div>
+                        <div className="form-group"><label className="form-label">Telefone</label><input {...phoneInputProps(form.phone, v => setForm(f => ({ ...f, phone: v })))} /></div>
                     </div>
                     <button type="submit" className="btn btn-primary" disabled={saving}>
                         {saving ? <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} /> : <><span className="material-icons-round">save</span> Salvar dados</>}

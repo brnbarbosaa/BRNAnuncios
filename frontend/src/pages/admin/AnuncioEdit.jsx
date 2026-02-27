@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { phoneInputProps } from '../../utils/phoneMask';
 
 export default function AdminAnuncioEdit() {
     const { id } = useParams();
@@ -114,8 +115,8 @@ export default function AdminAnuncioEdit() {
 
                 <Section title="📞 Contato e Redes Sociais">
                     <div className="form-grid cols-3" style={{ marginBottom: 16 }}>
-                        <div className="form-group"><label className="form-label">Telefone</label><input {...inp('phone')} placeholder="(11) 3333-4444" /></div>
-                        <div className="form-group"><label className="form-label">WhatsApp</label><input {...inp('whatsapp')} placeholder="(11) 99999-9999" /></div>
+                        <div className="form-group"><label className="form-label">Telefone</label><input {...phoneInputProps(form.phone, v => setForm(f => ({ ...f, phone: v })))} /></div>
+                        <div className="form-group"><label className="form-label">WhatsApp</label><input {...phoneInputProps(form.whatsapp, v => setForm(f => ({ ...f, whatsapp: v })))} /></div>
                         <div className="form-group"><label className="form-label">E-mail</label><input {...inp('email', 'email')} placeholder="contato@..." /></div>
                         <div className="form-group"><label className="form-label">Website</label><input {...inp('website')} placeholder="https://..." /></div>
                         <div className="form-group"><label className="form-label">Instagram</label><input {...inp('instagram')} placeholder="@usuario" /></div>

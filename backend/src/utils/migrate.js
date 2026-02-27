@@ -30,19 +30,39 @@ async function runMigration() {
         }
 
         // ── Verifica se o admin já existe antes de rodar o seed ──────────────
+        const devEmail = process.env.DEV_USER || 'admin@brnanuncios.com.br';
+        const devPass = process.env.DEV_PASS || 'admin123';
+        const devName = process.env.DEV_NAME || 'Administrador';
+
         const [users] = await conn.execute(
-            `SELECT COUNT(*) AS total FROM users WHERE role = 'admin' LIMIT 1`
+            `SELECT id FROM users WHERE role = 'admin' LIMIT 1`
         );
 
-        const adminExists = users[0].total > 0;
+        const bcrypt = require('bcryptjs');
+        const hash = await bcrypt.hash(devPass, 12);
 
-        if (adminExists) {
-            console.log('✅ [migrate] Admin já existe. Pulando seed.sql');
-        } else {
-            console.log('⚙️  [migrate] Nenhum admin encontrado. Executando seed.sql...');
+        if (users.length === 0) {
+            console.log(`⚙️  [migrate] Nenhum admin. Criando admin: ${devEmail}`);
+
+            // Roda seed de categorias
             await runSQLFile(conn, path.join(__dirname, '../../database/seed.sql'));
-            console.log('✅ [migrate] seed.sql executado com sucesso!');
+
+            // Ajusta o admin com dados e senha das env vars
+            await conn.execute(
+                `UPDATE users SET name = ?, email = ?, password_hash = ? WHERE role = 'admin' LIMIT 1`,
+                [devName, devEmail, hash]
+            );
+
+            console.log(`✅ [migrate] Admin criado: ${devEmail}`);
+        } else {
+            // Garante que as credenciais do admin sempre reflitam as env vars
+            await conn.execute(
+                `UPDATE users SET name = ?, email = ?, password_hash = ? WHERE role = 'admin' LIMIT 1`,
+                [devName, devEmail, hash]
+            );
+            console.log(`✅ [migrate] Admin atualizado com credenciais das env vars: ${devEmail}`);
         }
+
 
     } catch (err) {
         console.error('❌ [migrate] Erro durante a migração:', err.message);

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
+import { phoneInputProps } from '../../utils/phoneMask';
 
 export default function ClientMeuAnuncio() {
     const { user } = useAuth();
@@ -73,7 +74,11 @@ export default function ClientMeuAnuncio() {
             <form onSubmit={save}>
                 <Section title="📋 Informações Básicas">
                     <div className="form-grid cols-2" style={{ marginBottom: 14 }}>
-                        <div className="form-group"><label className="form-label">Nome do negócio *</label><input {...inp('name')} required /></div>
+                        <div className="form-group">
+                            <label className="form-label">Nome do negócio</label>
+                            <input {...inp('name')} readOnly disabled style={{ opacity: 0.6, cursor: 'not-allowed' }} />
+                            <small style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>🔒 O nome do estabelecimento não pode ser alterado.</small>
+                        </div>
                         <div className="form-group"><label className="form-label">Categoria</label>
                             <select className="form-select" value={form.category_id} onChange={e => set('category_id', e.target.value)}>
                                 <option value="">Selecione...</option>
@@ -87,8 +92,8 @@ export default function ClientMeuAnuncio() {
 
                 <Section title="📞 Contato e Redes Sociais">
                     <div className="form-grid cols-3">
-                        <div className="form-group"><label className="form-label">Telefone</label><input {...inp('phone')} placeholder="(11) 3333-4444" /></div>
-                        <div className="form-group"><label className="form-label">WhatsApp</label><input {...inp('whatsapp')} placeholder="(11) 99999-9999" /></div>
+                        <div className="form-group"><label className="form-label">Telefone</label><input {...phoneInputProps(form.phone, v => set('phone', v))} /></div>
+                        <div className="form-group"><label className="form-label">WhatsApp</label><input {...phoneInputProps(form.whatsapp, v => set('whatsapp', v))} /></div>
                         <div className="form-group"><label className="form-label">E-mail</label><input {...inp('email')} type="email" placeholder="contato@..." /></div>
                         <div className="form-group"><label className="form-label">Website</label><input {...inp('website')} placeholder="https://..." /></div>
                         <div className="form-group"><label className="form-label">Instagram</label><input {...inp('instagram')} placeholder="@usuario" /></div>

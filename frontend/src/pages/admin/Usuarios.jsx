@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
+import { phoneInputProps } from '../../utils/phoneMask';
 
 export default function AdminUsuarios() {
     const [users, setUsers] = useState([]);
@@ -106,7 +107,7 @@ export default function AdminUsuarios() {
                             <div className="form-grid cols-2">
                                 <div className="form-group"><label className="form-label">Nome *</label><input className="form-input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
                                 <div className="form-group"><label className="form-label">E-mail *</label><input className="form-input" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
-                                <div className="form-group"><label className="form-label">Telefone</label><input className="form-input" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
+                                <div className="form-group"><label className="form-label">Telefone</label><input {...phoneInputProps(form.phone, v => setForm(f => ({ ...f, phone: v })))} /></div>
                                 <div className="form-group"><label className="form-label">Papel</label>
                                     <select className="form-select" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
                                         <option value="client">Cliente</option>

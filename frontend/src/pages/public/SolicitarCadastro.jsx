@@ -1,170 +1,163 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { phoneInputProps, maskPhone } from '../../utils/phoneMask';
 
 export default function SolicitarCadastro() {
-    const [categories, setCategories] = useState([]);
     const [form, setForm] = useState({
-        contact_name: '', contact_email: '', contact_phone: '',
-        business_name: '', category_id: '', short_description: '', description: '',
-        phone: '', whatsapp: '', website: '', instagram: '', facebook: '',
-        street: '', number: '', complement: '', neighborhood: '', city: '', state: '', zip_code: '',
+        contact_name: '',
+        contact_email: '',
+        contact_phone: '',
+        business_name: '',
     });
-    const [status, setStatus] = useState(null); // {type, msg}
+    const [status, setStatus] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [step, setStep] = useState(1);
-
-    useEffect(() => { api.get('/public/categories').then(r => setCategories(r.data)); }, []);
+    const [done, setDone] = useState(false);
+    const navigate = useNavigate();
 
     const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-    const inp = (k) => ({ value: form[k], onChange: e => set(k, e.target.value), className: 'form-input' });
 
     const submit = async (e) => {
         e.preventDefault();
         if (!form.contact_name || !form.contact_email || !form.business_name) {
-            return setStatus({ type: 'error', msg: 'Preencha os campos obrigatórios.' });
+            return setStatus({ type: 'error', msg: 'Preencha todos os campos obrigatórios.' });
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(form.contact_email)) {
+            return setStatus({ type: 'error', msg: 'Informe um e-mail válido.' });
         }
         setLoading(true);
+        setStatus(null);
         try {
             await api.post('/public/requests', form);
-            setStatus({ type: 'success', msg: 'Solicitação enviada com sucesso! Em breve nossa equipe entrará em contato.' });
-            setStep(4);
+            setDone(true);
         } catch (err) {
-            setStatus({ type: 'error', msg: err.message });
+            setStatus({ type: 'error', msg: err.message || 'Erro ao enviar. Tente novamente.' });
         } finally {
             setLoading(false);
         }
     };
 
-    if (step === 4) return (
+    if (done) return (
         <div style={{ paddingTop: 'var(--header-height)', minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ textAlign: 'center', padding: '40px 24px', maxWidth: 480 }}>
+            <div style={{ textAlign: 'center', padding: '40px 24px', maxWidth: 520 }}>
                 <span className="material-icons-round" style={{ fontSize: 80, color: 'var(--success)', display: 'block', marginBottom: 20 }}>check_circle</span>
-                <h2 style={{ marginBottom: 12 }}>Solicitação Enviada!</h2>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-                    Recebemos o seu pedido de cadastro para <strong style={{ color: 'var(--text-primary)' }}>{form.business_name}</strong>.
-                    Nossa equipe vai analisar e entrar em contato em breve!
+                <h2 style={{ marginBottom: 12 }}>Solicitação Enviada! 🎉</h2>
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: 8 }}>
+                    Recebemos o pedido de cadastro para <strong style={{ color: 'var(--text-primary)' }}>{form.business_name}</strong>.
                 </p>
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: 28 }}>
+                    Nossa equipe vai analisar as informações e entrar em contato pelo e-mail <strong style={{ color: 'var(--primary-light)' }}>{form.contact_email}</strong> em breve.
+                </p>
+                <button className="btn btn-ghost" onClick={() => navigate('/')}>
+                    <span className="material-icons-round">home</span> Voltar ao início
+                </button>
             </div>
         </div>
     );
 
-    const steps = ['Contato', 'Negócio', 'Endereço'];
-
     return (
         <div style={{ paddingTop: 'var(--header-height)' }}>
-            <div style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-light)', padding: '32px 0' }}>
-                <div className="container">
-                    <h1 style={{ marginBottom: 8 }}>📢 Anuncie seu <span style={{ color: 'var(--primary-light)' }}>Negócio</span></h1>
-                    <p style={{ color: 'var(--text-secondary)' }}>Preencha o formulário e aguarde a aprovação da nossa equipe.</p>
+            {/* Hero */}
+            <div style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-light)', padding: '40px 0 32px' }}>
+                <div className="container" style={{ maxWidth: 680 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12 }}>
+                        <div style={{ width: 52, height: 52, borderRadius: 'var(--radius-md)', background: 'rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span className="material-icons-round" style={{ color: 'var(--primary-light)', fontSize: 28 }}>add_business</span>
+                        </div>
+                        <div>
+                            <h1 style={{ fontSize: '1.6rem', marginBottom: 2 }}>Anuncie seu <span style={{ color: 'var(--primary-light)' }}>Negócio</span></h1>
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Preencha os dados abaixo e nossa equipe entrará em contato.</p>
+                        </div>
+                    </div>
 
-                    {/* Stepper */}
-                    <div style={{ display: 'flex', gap: 0, marginTop: 24, maxWidth: 400 }}>
-                        {steps.map((s, i) => (
-                            <div key={s} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 0 }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: i + 1 <= step ? 'pointer' : 'default' }} onClick={() => i + 1 < step && setStep(i + 1)}>
-                                    <div style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: i + 1 <= step ? 'var(--primary)' : 'var(--bg-card)', border: `2px solid ${i + 1 <= step ? 'var(--primary)' : 'var(--border-light)'}`, fontWeight: 700, fontSize: '0.85rem', color: i + 1 <= step ? '#fff' : 'var(--text-muted)' }}>
-                                        {i + 1 < step ? <span className="material-icons-round" style={{ fontSize: 18 }}>check</span> : i + 1}
-                                    </div>
-                                    <span style={{ fontSize: '0.75rem', color: i + 1 <= step ? 'var(--primary-light)' : 'var(--text-muted)', marginTop: 4 }}>{s}</span>
-                                </div>
-                                {i < steps.length - 1 && <div style={{ flex: 1, height: 2, background: i + 1 < step ? 'var(--primary)' : 'var(--border-light)', margin: '0 4px', marginBottom: 18 }} />}
+                    {/* Benefícios */}
+                    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 20 }}>
+                        {[
+                            { icon: 'visibility', label: 'Visibilidade online' },
+                            { icon: 'thumb_up', label: 'Aprovação rápida' },
+                            { icon: 'edit', label: 'Gerencie seu perfil' },
+                        ].map(b => (
+                            <div key={b.label} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-full)', padding: '6px 14px', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                                <span className="material-icons-round" style={{ fontSize: 15, color: 'var(--success)' }}>{b.icon}</span>
+                                {b.label}
                             </div>
                         ))}
                     </div>
                 </div>
             </div>
 
-            <div className="container" style={{ padding: '40px 24px', maxWidth: 760 }}>
-                {status?.type === 'error' && <div className="alert alert-error" style={{ marginBottom: 20 }}><span className="material-icons-round">error</span>{status.msg}</div>}
+            {/* Formulário */}
+            <div className="container" style={{ padding: '40px 24px', maxWidth: 680 }}>
+                {status?.type === 'error' && (
+                    <div className="alert alert-error" style={{ marginBottom: 20 }}>
+                        <span className="material-icons-round">error</span>{status.msg}
+                    </div>
+                )}
 
-                <form onSubmit={submit}>
-                    {/* ── Passo 1: Contato ── */}
-                    {step === 1 && (
-                        <div className="card" style={{ padding: '28px' }}>
-                            <h3 style={{ marginBottom: 20 }}>👤 Dados de Contato</h3>
-                            <div className="form-grid cols-2" style={{ marginBottom: 16 }}>
-                                <div className="form-group"><label className="form-label">Nome completo *</label><input {...inp('contact_name')} placeholder="Seu nome" /></div>
-                                <div className="form-group"><label className="form-label">E-mail *</label><input {...inp('contact_email')} type="email" placeholder="seu@email.com" /></div>
+                <div className="card" style={{ padding: '32px' }}>
+                    <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                        <div className="form-group">
+                            <label className="form-label">Nome do estabelecimento *</label>
+                            <input
+                                className="form-input"
+                                value={form.business_name}
+                                onChange={e => set('business_name', e.target.value)}
+                                placeholder="Ex: Padaria do João, Barbearia Central..."
+                                required
+                            />
+                            <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                                ⚠️ O nome do estabelecimento não poderá ser alterado após o cadastro.
+                            </small>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Nome do responsável *</label>
+                            <input
+                                className="form-input"
+                                value={form.contact_name}
+                                onChange={e => set('contact_name', e.target.value)}
+                                placeholder="Seu nome completo"
+                                required
+                            />
+                        </div>
+
+                        <div className="form-grid cols-2">
+                            <div className="form-group">
+                                <label className="form-label">Telefone / WhatsApp *</label>
+                                <input {...phoneInputProps(form.contact_phone, v => set('contact_phone', v))} required />
                             </div>
-                            <div className="form-group" style={{ marginBottom: 24 }}>
-                                <label className="form-label">Telefone</label>
-                                <input {...inp('contact_phone')} placeholder="(11) 99999-9999" style={{ maxWidth: 240 }} />
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                <button type="button" className="btn btn-primary" onClick={() => { if (!form.contact_name || !form.contact_email) return setStatus({ type: 'error', msg: 'Preencha nome e e-mail.' }); setStatus(null); setStep(2); }}>
-                                    Próximo <span className="material-icons-round">arrow_forward</span>
-                                </button>
+                            <div className="form-group">
+                                <label className="form-label">E-mail *</label>
+                                <input
+                                    className="form-input"
+                                    type="email"
+                                    value={form.contact_email}
+                                    onChange={e => set('contact_email', e.target.value)}
+                                    placeholder="seu@email.com"
+                                    required
+                                />
                             </div>
                         </div>
-                    )}
 
-                    {/* ── Passo 2: Negócio ── */}
-                    {step === 2 && (
-                        <div className="card" style={{ padding: '28px' }}>
-                            <h3 style={{ marginBottom: 20 }}>🏪 Dados do Negócio</h3>
-                            <div className="form-grid cols-2" style={{ marginBottom: 16 }}>
-                                <div className="form-group"><label className="form-label">Nome do negócio *</label><input {...inp('business_name')} placeholder="Ex: Padaria do João" /></div>
-                                <div className="form-group">
-                                    <label className="form-label">Categoria</label>
-                                    <select className="form-select" value={form.category_id} onChange={e => set('category_id', e.target.value)}>
-                                        <option value="">Selecione...</option>
-                                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="form-group" style={{ marginBottom: 16 }}>
-                                <label className="form-label">Descrição curta</label>
-                                <input {...inp('short_description')} placeholder="Resumo em até 120 caracteres" maxLength={300} />
-                            </div>
-                            <div className="form-group" style={{ marginBottom: 16 }}>
-                                <label className="form-label">Descrição completa</label>
-                                <textarea {...inp('description')} className="form-textarea" placeholder="Conte mais sobre o seu negócio..." rows={4} />
-                            </div>
-                            <div className="form-grid cols-2" style={{ marginBottom: 16 }}>
-                                <div className="form-group"><label className="form-label">Telefone</label><input {...inp('phone')} placeholder="(11) 3333-4444" /></div>
-                                <div className="form-group"><label className="form-label">WhatsApp</label><input {...inp('whatsapp')} placeholder="(11) 99999-9999" /></div>
-                            </div>
-                            <div className="form-grid cols-3" style={{ marginBottom: 24 }}>
-                                <div className="form-group"><label className="form-label">Website</label><input {...inp('website')} placeholder="https://..." /></div>
-                                <div className="form-group"><label className="form-label">Instagram</label><input {...inp('instagram')} placeholder="@usuario" /></div>
-                                <div className="form-group"><label className="form-label">Facebook</label><input {...inp('facebook')} placeholder="Link ou página" /></div>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <button type="button" className="btn btn-ghost" onClick={() => setStep(1)}><span className="material-icons-round">arrow_back</span> Voltar</button>
-                                <button type="button" className="btn btn-primary" onClick={() => { if (!form.business_name) return setStatus({ type: 'error', msg: 'Informe o nome do negócio.' }); setStatus(null); setStep(3); }}>
-                                    Próximo <span className="material-icons-round">arrow_forward</span>
-                                </button>
-                            </div>
+                        <div style={{ background: 'rgba(59,130,246,0.07)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 'var(--radius-md)', padding: '14px 16px', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                            <span className="material-icons-round" style={{ fontSize: 16, verticalAlign: 'middle', color: 'var(--info)', marginRight: 6 }}>info</span>
+                            Após a aprovação, você receberá um e-mail com suas credenciais de acesso para completar todas as informações do seu negócio (fotos, endereço, horários, redes sociais e muito mais).
                         </div>
-                    )}
 
-                    {/* ── Passo 3: Endereço ── */}
-                    {step === 3 && (
-                        <div className="card" style={{ padding: '28px' }}>
-                            <h3 style={{ marginBottom: 20 }}>📍 Endereço</h3>
-                            <div className="form-grid cols-2" style={{ marginBottom: 16 }}>
-                                <div className="form-group" style={{ gridColumn: 'span 2' }}><label className="form-label">Rua / Avenida</label><input {...inp('street')} placeholder="Rua Exemplo" /></div>
-                                <div className="form-group"><label className="form-label">Número</label><input {...inp('number')} placeholder="123" /></div>
-                                <div className="form-group"><label className="form-label">Complemento</label><input {...inp('complement')} placeholder="Sala 2, Andar 3..." /></div>
-                                <div className="form-group"><label className="form-label">Bairro</label><input {...inp('neighborhood')} placeholder="Bairro" /></div>
-                                <div className="form-group"><label className="form-label">Cidade</label><input {...inp('city')} placeholder="Cidade" /></div>
-                                <div className="form-group"><label className="form-label">Estado</label>
-                                    <select className="form-select" value={form.state} onChange={e => set('state', e.target.value)}>
-                                        <option value="">UF</option>
-                                        {['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'].map(uf => <option key={uf} value={uf}>{uf}</option>)}
-                                    </select>
-                                </div>
-                                <div className="form-group"><label className="form-label">CEP</label><input {...inp('zip_code')} placeholder="00000-000" /></div>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-                                <button type="button" className="btn btn-ghost" onClick={() => setStep(2)}><span className="material-icons-round">arrow_back</span> Voltar</button>
-                                <button type="submit" className="btn btn-primary btn-lg" disabled={loading}>
-                                    {loading ? <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} /> : <><span className="material-icons-round">send</span> Enviar solicitação</>}
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </form>
+                        <button type="submit" className="btn btn-primary btn-lg" disabled={loading} style={{ alignSelf: 'flex-end' }}>
+                            {loading
+                                ? <div className="spinner" style={{ width: 20, height: 20, borderWidth: 2 }} />
+                                : <><span className="material-icons-round">send</span> Enviar solicitação</>
+                            }
+                        </button>
+                    </form>
+                </div>
+
+                <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: 16 }}>
+                    Já tem acesso?{' '}
+                    <a href="/login" style={{ color: 'var(--primary-light)' }}>Faça login aqui</a>
+                </p>
             </div>
         </div>
     );
