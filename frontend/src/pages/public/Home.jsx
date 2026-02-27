@@ -195,31 +195,37 @@ export default function Home() {
                         <div className="plans-grid">
                             {plans.map(plan => {
                                 const features = Array.isArray(plan.features) ? plan.features : JSON.parse(plan.features || '[]');
-                                const featureMap = {
-                                    gallery: '🖼️ Galeria de fotos',
-                                    maps: '📍 Localização no mapa',
-                                    social_extended: '📲 Redes sociais ilimitadas',
-                                    highlights: '⭐ Destaque no carrossel',
-                                };
+                                const isHighlight = Boolean(plan.highlight);
+                                const hasPromo = plan.price_promo && parseFloat(plan.price_promo) > 0;
                                 const contactHref = plan.contact_link || '/solicitar-cadastro';
                                 return (
-                                    <div key={plan.id} className={`plan-card ${plan.highlight ? 'plan-highlight' : ''}`}>
-                                        {plan.highlight && <div className="plan-badge-top">⭐ Mais Popular</div>}
+                                    <div key={plan.id} className={`plan-card ${isHighlight ? 'plan-highlight' : ''}`}>
+                                        {isHighlight && <div className="plan-badge-top">⭐ Mais Popular</div>}
                                         <div>
                                             <p className="plan-name">{plan.name}</p>
                                             {plan.description && <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginTop: 6 }}>{plan.description}</p>}
                                         </div>
                                         <div className="plan-price">
-                                            {parseFloat(plan.price) === 0 ? 'Grátis' : <>R$ {parseFloat(plan.price).toFixed(2).replace('.', ',')}<span>/mês</span></>}
+                                            {parseFloat(plan.price) === 0 ? 'Grátis' : (
+                                                hasPromo ? (
+                                                    <>
+                                                        <span style={{ textDecoration: 'line-through', fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 400 }}>
+                                                            R$ {parseFloat(plan.price).toFixed(2).replace('.', ',')}
+                                                        </span>
+                                                        {' '}
+                                                        R$ {parseFloat(plan.price_promo).toFixed(2).replace('.', ',')}<span>/mês</span>
+                                                    </>
+                                                ) : (
+                                                    <>R$ {parseFloat(plan.price).toFixed(2).replace('.', ',')}<span>/mês</span></>
+                                                )
+                                            )}
                                         </div>
                                         <ul className="plan-features">
-                                            <li><span className="material-icons-round">check_circle</span> Página de negócio completa</li>
-                                            <li><span className="material-icons-round">check_circle</span> Exibição nas buscas</li>
-                                            {features.map(f => featureMap[f] && (
-                                                <li key={f}><span className="material-icons-round">check_circle</span> {featureMap[f]}</li>
+                                            {features.map((f, i) => (
+                                                <li key={i}><span className="material-icons-round">check_circle</span> {f}</li>
                                             ))}
                                         </ul>
-                                        <a href={contactHref} className={`btn btn-lg ${plan.highlight ? 'btn-primary' : 'btn-ghost'}`} style={{ textAlign: 'center' }}>
+                                        <a href={contactHref} className={`btn btn-lg ${isHighlight ? 'btn-primary' : 'btn-ghost'}`} style={{ textAlign: 'center' }}>
                                             <span className="material-icons-round">rocket_launch</span>
                                             {parseFloat(plan.price) === 0 ? 'Começar grátis' : 'Quero este plano'}
                                         </a>

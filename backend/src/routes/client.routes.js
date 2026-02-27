@@ -176,25 +176,40 @@ router.get('/profile', async (req, res) => {
     }
 });
 
-// PUT /api/client/profile — atualiza perfil
+// PUT /api/client/profile — atualiza perfil (telefone)
 router.put('/profile', async (req, res) => {
-    const { name, phone, currentPassword, newPassword } = req.body;
+    const { phone } = req.body;
     try {
-        if (newPassword) {
-            const bcrypt = require('bcryptjs');
-            const [rows] = await db.execute('SELECT password_hash FROM users WHERE id = ?', [req.user.id]);
-            const valid = await bcrypt.compare(currentPassword || '', rows[0].password_hash);
-            if (!valid) return res.status(400).json({ error: 'Senha atual incorreta.' });
-            const hash = await bcrypt.hash(newPassword, 12);
-            await db.execute('UPDATE users SET name=?, phone=?, password_hash=? WHERE id=?', [name, phone || null, hash, req.user.id]);
-        } else {
-            await db.execute('UPDATE users SET name=?, phone=? WHERE id=?', [name, phone || null, req.user.id]);
-        }
+        const [existing] = await db.execute('SELECT name FROM users WHERE id = ? LIMIT 1', [req.user.id]);
+        const currentName = existing[0]?.name || req.user.name;
+        await db.execute('UPDATE users SET name=?, phone=? WHERE id=?', [currentName, phone || null, req.user.id]);
         await createLog({ userId: req.user.id, userName: req.user.name, action: 'UPDATE_PROFILE', entity: 'user', entityId: req.user.id, ip: getIp(req), level: 'info' });
-        return res.json({ message: 'Perfil atualizado.' });
+        return res.json({ message: 'Telefone atualizado.' });
     } catch (err) {
+        console.error('[Profile]', err);
         return res.status(500).json({ error: 'Erro ao atualizar perfil.' });
     }
 });
 
+// PUT /api/client/profile/password — altera senha
+router.put('/profile/password', async (req, res) => {
+    const { current_password, new_password } = req.body;
+    if (!current_password || !new_password) return res.status(400).json({ error: 'Campos obrigatórios.' });
+    if (new_password.length < 6) return res.status(400).json({ error: 'A nova senha deve ter pelo menos 6 caracteres.' });
+    try {
+        const bcrypt = require('bcryptjs');
+        const [rows] = await db.execute('SELECT password_hash FROM users WHERE id = ?', [req.user.id]);
+        const valid = await bcrypt.compare(current_password, rows[0].password_hash);
+        if (!valid) return res.status(400).json({ error: 'Senha atual incorreta.' });
+        const hash = await bcrypt.hash(new_password, 12);
+        await db.execute('UPDATE users SET password_hash=? WHERE id=?', [hash, req.user.id]);
+        await createLog({ userId: req.user.id, userName: req.user.name, action: 'CHANGE_PASSWORD', entity: 'user', entityId: req.user.id, ip: getIp(req), level: 'warning' });
+        return res.json({ message: 'Senha alterada com sucesso.' });
+    } catch (err) {
+        console.error('[Password]', err);
+        return res.status(500).json({ error: 'Erro ao alterar senha.' });
+    }
+});
+
 module.exports = router;
+

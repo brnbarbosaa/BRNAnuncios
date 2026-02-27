@@ -65,6 +65,7 @@ async function runMigration() {
                 slug VARCHAR(120) NOT NULL UNIQUE,
                 description TEXT DEFAULT NULL,
                 price DECIMAL(10,2) DEFAULT 0.00,
+                price_promo DECIMAL(10,2) DEFAULT NULL,
                 features JSON DEFAULT NULL,
                 highlight TINYINT(1) DEFAULT 0,
                 active TINYINT(1) DEFAULT 1,
@@ -74,6 +75,19 @@ async function runMigration() {
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
+
+        // Adiciona colunas novas se não existirem (migrações incrementais)
+        const addColIfMissing = async (table, col, def) => {
+            const [[{ cnt }]] = await conn.execute(
+                `SELECT COUNT(*) AS cnt FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name=? AND column_name=?`,
+                [table, col]
+            );
+            if (cnt === 0) {
+                await conn.execute(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`);
+                console.log(`✅ [migrate] Coluna '${col}' adicionada em '${table}'.`);
+            }
+        };
+        await addColIfMissing('plans', 'price_promo', 'DECIMAL(10,2) DEFAULT NULL AFTER price');
 
         // Seed dos planos iniciais (só se tabela estiver vazia)
         const [[{ planCount }]] = await conn.execute('SELECT COUNT(*) AS planCount FROM plans');

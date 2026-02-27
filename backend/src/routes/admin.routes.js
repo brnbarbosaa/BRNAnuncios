@@ -366,10 +366,12 @@ router.get('/highlights', async (req, res) => {
 
 router.post('/highlights', async (req, res) => {
     const { business_id, type, title, subtitle, banner_image, sort_order, active, starts_at, ends_at } = req.body;
+    if (!business_id) return res.status(400).json({ error: 'Negócio obrigatório.' });
     const [r] = await db.execute(
         'INSERT INTO highlights (business_id, type, title, subtitle, banner_image, sort_order, active, starts_at, ends_at) VALUES (?,?,?,?,?,?,?,?,?)',
         [business_id, type || 'card', title || null, subtitle || null, banner_image || null, sort_order || 0, active !== false ? 1 : 0, starts_at || null, ends_at || null]
     );
+    await db.execute('UPDATE businesses SET featured = 1 WHERE id = ?', [business_id]);
     return res.status(201).json({ message: 'Destaque criado.', id: r.insertId });
 });
 
@@ -383,7 +385,12 @@ router.put('/highlights/:id', async (req, res) => {
 });
 
 router.delete('/highlights/:id', async (req, res) => {
+    const [h] = await db.execute('SELECT business_id FROM highlights WHERE id = ?', [req.params.id]);
     await db.execute('DELETE FROM highlights WHERE id=?', [req.params.id]);
+    if (h[0]) {
+        const [[{ cnt }]] = await db.execute('SELECT COUNT(*) AS cnt FROM highlights WHERE business_id = ?', [h[0].business_id]);
+        if (cnt === 0) await db.execute('UPDATE businesses SET featured = 0 WHERE id = ?', [h[0].business_id]);
+    }
     return res.json({ message: 'Destaque removido.' });
 });
 
@@ -396,13 +403,13 @@ router.get('/plans', async (req, res) => {
 });
 
 router.post('/plans', async (req, res) => {
-    const { name, slug, description, price, features, highlight, active, sort_order, contact_link } = req.body;
+    const { name, slug, description, price, price_promo, features, highlight, active, sort_order, contact_link } = req.body;
     if (!name || !slug) return res.status(400).json({ error: 'Nome e slug são obrigatórios.' });
     try {
         const [r] = await db.execute(
-            'INSERT INTO plans (name, slug, description, price, features, highlight, active, sort_order, contact_link) VALUES (?,?,?,?,?,?,?,?,?)',
-            [name, slug, description || null, parseFloat(price) || 0, JSON.stringify(features || []),
-                highlight ? 1 : 0, active !== false ? 1 : 0, parseInt(sort_order) || 0, contact_link || null]
+            'INSERT INTO plans (name, slug, description, price, price_promo, features, highlight, active, sort_order, contact_link) VALUES (?,?,?,?,?,?,?,?,?,?)',
+            [name, slug, description || null, parseFloat(price) || 0, price_promo ? parseFloat(price_promo) : null,
+                JSON.stringify(features || []), highlight ? 1 : 0, active !== false ? 1 : 0, parseInt(sort_order) || 0, contact_link || null]
         );
         return res.status(201).json({ message: 'Plano criado.', id: r.insertId });
     } catch (err) {
@@ -412,12 +419,12 @@ router.post('/plans', async (req, res) => {
 });
 
 router.put('/plans/:id', async (req, res) => {
-    const { name, slug, description, price, features, highlight, active, sort_order, contact_link } = req.body;
+    const { name, slug, description, price, price_promo, features, highlight, active, sort_order, contact_link } = req.body;
     try {
         await db.execute(
-            'UPDATE plans SET name=?, slug=?, description=?, price=?, features=?, highlight=?, active=?, sort_order=?, contact_link=?, updated_at=NOW() WHERE id=?',
-            [name, slug, description || null, parseFloat(price) || 0, JSON.stringify(features || []),
-                highlight ? 1 : 0, active !== false ? 1 : 0, parseInt(sort_order) || 0, contact_link || null, req.params.id]
+            'UPDATE plans SET name=?, slug=?, description=?, price=?, price_promo=?, features=?, highlight=?, active=?, sort_order=?, contact_link=?, updated_at=NOW() WHERE id=?',
+            [name, slug, description || null, parseFloat(price) || 0, price_promo ? parseFloat(price_promo) : null,
+                JSON.stringify(features || []), highlight ? 1 : 0, active !== false ? 1 : 0, parseInt(sort_order) || 0, contact_link || null, req.params.id]
         );
         return res.json({ message: 'Plano atualizado.' });
     } catch (err) {

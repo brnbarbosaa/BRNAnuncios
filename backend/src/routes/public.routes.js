@@ -212,9 +212,8 @@ router.get('/health', (req, res) => {
 router.get('/plans', async (req, res) => {
     try {
         const [rows] = await db.execute(
-            'SELECT id, name, slug, description, price, features, highlight, contact_link FROM plans WHERE active = 1 ORDER BY sort_order ASC'
+            'SELECT id, name, slug, description, price, price_promo, features, highlight, contact_link FROM plans WHERE active = 1 ORDER BY sort_order ASC'
         );
-        // Parse features JSON para array
         const plans = rows.map(p => ({
             ...p,
             features: typeof p.features === 'string' ? JSON.parse(p.features) : (p.features || []),
