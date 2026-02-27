@@ -40,7 +40,7 @@ export default function AdminDestaques() {
 
     const HList = ({ items, title }) => (
         <div style={{ marginBottom: 32 }}>
-            <h3 style={{ marginBottom: 16, fontSize: '1rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '0.82rem' }}>{title} ({items.length})</h3>
+            <h3 style={{ marginBottom: 16, fontSize: '0.82rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{title} ({items.length})</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {items.map(h => (
                     <div key={h.id} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
