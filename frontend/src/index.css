@@ -770,23 +770,34 @@ tbody td {
 
 .plan-card.plan-highlight {
   border-color: transparent;
-  background: var(--bg-card);
-  position: relative;
+  background: none;
+  overflow: hidden;
 }
 
 .plan-card.plan-highlight::before {
   content: '';
   position: absolute;
-  inset: -1px;
-  border-radius: var(--radius-xl);
-  padding: 2px;
-  background: conic-gradient(transparent 70%, var(--accent) 100%);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
+  z-index: 0;
+  left: -50%;
+  top: -50%;
+  width: 200%;
+  height: 200%;
+  background-image: conic-gradient(transparent, var(--accent) 15%, transparent 30%);
   animation: borderRotate 3s linear infinite;
-  pointer-events: none;
+}
+
+.plan-card.plan-highlight::after {
+  content: '';
+  position: absolute;
   z-index: 1;
+  inset: 3px;
+  background: var(--bg-card);
+  border-radius: calc(var(--radius-xl) - 3px);
+}
+
+.plan-card.plan-highlight>* {
+  position: relative;
+  z-index: 2;
 }
 
 @keyframes borderRotate {

@@ -35,6 +35,7 @@
 
 .bcard-cover {
     height: 140px;
+    min-height: 140px;
     background: var(--bg-surface);
     display: flex;
     align-items: center;
@@ -85,7 +86,6 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 8px;
 }
 
 .bcard-category {

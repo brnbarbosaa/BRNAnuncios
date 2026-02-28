@@ -176,7 +176,7 @@ router.post('/businesses', async (req, res) => {
         phone, whatsapp, email, website, instagram, facebook,
         street, number, complement, neighborhood, city, state, zip_code, tags,
         status, plan, featured, featured_order, social_links
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
             [
                 user_id, name, slug, category_id || null, category_observation || null, short_description || null, description || null,
                 phone || null, whatsapp || null, email || null, website || null, instagram || null, facebook || null,
