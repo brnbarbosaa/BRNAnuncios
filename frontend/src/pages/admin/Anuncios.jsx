@@ -24,6 +24,7 @@ export default function AdminAnuncios() {
         if (!status) params.delete('status');
         api.get(`/admin/businesses?${params}`)
             .then(r => { setBusinesses(r.data.businesses); setPagination(r.data.pagination); })
+            .catch(err => setAlert({ type: 'error', msg: err.response?.data?.error || err.message }))
             .finally(() => setLoading(false));
     };
 

@@ -97,6 +97,8 @@ async function runMigration() {
 
         // ── Businesses: redes sociais dinâmicas ──────────────────────────
         await addColIfMissing('businesses', 'social_links', 'JSON DEFAULT NULL AFTER facebook');
+        await addColIfMissing('businesses', 'category_observation', 'VARCHAR(255) DEFAULT NULL AFTER category_id');
+        await addColIfMissing('requests', 'category_observation', 'VARCHAR(255) DEFAULT NULL AFTER category_id');
 
         // Seed dos planos iniciais (só se tabela estiver vazia)
         const [[{ planCount }]] = await conn.execute('SELECT COUNT(*) AS planCount FROM plans');
