@@ -8,9 +8,15 @@ const STATUS_MAP = {
     rejected: { label: 'Recusado', color: 'var(--danger)', icon: 'cancel', bg: 'rgba(239,68,68,0.12)' },
 };
 
+const STATUS_FILTERS = [
+    { key: 'pending', label: 'Pendentes', icon: 'hourglass_top' },
+    { key: '', label: 'Todos', icon: 'list' },
+    { key: 'approved', label: 'Aprovados', icon: 'check_circle' },
+    { key: 'rejected', label: 'Recusados', icon: 'cancel' },
+];
+
 function fmtDate(d) { return d ? new Date(d).toLocaleDateString('pt-BR') : '—'; }
 function fmtDateTime(d) { return d ? new Date(d).toLocaleString('pt-BR') : '—'; }
-
 function nowISO() { const d = new Date(); d.setHours(d.getHours() - 3); return d.toISOString().slice(0, 16); }
 function daysPlusISO(n) { const d = new Date(); d.setHours(d.getHours() - 3); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 16); }
 
@@ -33,15 +39,12 @@ function HighlightItem({ item, onApprove, onReject, onEdit, onView, onDelete, sh
             display: 'flex', alignItems: 'center', gap: 14,
             transition: 'all 0.2s', cursor: 'pointer',
             opacity: isExpired ? 0.6 : 1,
-        }}
-            onClick={() => onView(item)}
-        >
-            {/* Indicador ativo */}
+        }} onClick={() => onView(item)}>
+            {/* Barra lateral */}
             <div style={{
                 width: 4, alignSelf: 'stretch', borderRadius: 4, flexShrink: 0,
                 background: isExpired ? 'var(--text-muted)' : isActive ? 'var(--success)' : item.status === 'pending' ? 'var(--accent)' : 'var(--danger)',
             }} />
-
             {/* Logo */}
             <div style={{ width: 46, height: 46, borderRadius: 'var(--radius-md)', overflow: 'hidden', background: 'var(--bg-surface)', flexShrink: 0 }}>
                 {item.logo ? <img src={item.logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> :
@@ -49,7 +52,6 @@ function HighlightItem({ item, onApprove, onReject, onEdit, onView, onDelete, sh
                         <span className="material-icons-round" style={{ color: 'var(--text-muted)', fontSize: 20 }}>store</span>
                     </div>}
             </div>
-
             {/* Info */}
             <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
@@ -63,7 +65,6 @@ function HighlightItem({ item, onApprove, onReject, onEdit, onView, onDelete, sh
                             {item.type === 'carousel' ? '🖼️ Carrossel' : '🃏 Card'}
                         </span>
                     )}
-                    {/* Ativo/Inativo badge */}
                     {item.status === 'approved' && (
                         <span style={{
                             fontSize: '0.6rem', padding: '1px 6px', borderRadius: 'var(--radius-full)', fontWeight: 700,
@@ -73,9 +74,7 @@ function HighlightItem({ item, onApprove, onReject, onEdit, onView, onDelete, sh
                             {isExpired ? '⏰ Expirado' : isActive ? '🟢 Ativo' : '🔴 Inativo'}
                         </span>
                     )}
-                    {item.business_plan === 'premium' && (
-                        <span style={{ fontSize: '0.6rem', color: 'var(--primary-light)' }}>💎</span>
-                    )}
+                    {item.business_plan === 'premium' && <span style={{ fontSize: '0.6rem', color: 'var(--primary-light)' }}>💎</span>}
                 </div>
                 <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                     {item.title && <span>📌 {item.title}</span>}
@@ -83,19 +82,16 @@ function HighlightItem({ item, onApprove, onReject, onEdit, onView, onDelete, sh
                     {item.status === 'pending' && item.requested_at && <span>📨 {fmtDate(item.requested_at)}</span>}
                 </div>
             </div>
-
             {/* Ações */}
             <div style={{ display: 'flex', gap: 4, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                {item.status === 'pending' && (
-                    <>
-                        <button className="btn btn-sm" style={{ background: 'var(--success)', color: '#fff', padding: '5px 10px' }} onClick={() => onApprove(item)} title="Aprovar">
-                            <span className="material-icons-round" style={{ fontSize: 15 }}>check</span>
-                        </button>
-                        <button className="btn btn-sm" style={{ background: 'var(--danger)', color: '#fff', padding: '5px 10px' }} onClick={() => onReject(item)} title="Recusar">
-                            <span className="material-icons-round" style={{ fontSize: 15 }}>close</span>
-                        </button>
-                    </>
-                )}
+                {item.status === 'pending' && (<>
+                    <button className="btn btn-sm" style={{ background: 'var(--success)', color: '#fff', padding: '5px 10px' }} onClick={() => onApprove(item)} title="Aprovar">
+                        <span className="material-icons-round" style={{ fontSize: 15 }}>check</span>
+                    </button>
+                    <button className="btn btn-sm" style={{ background: 'var(--danger)', color: '#fff', padding: '5px 10px' }} onClick={() => onReject(item)} title="Recusar">
+                        <span className="material-icons-round" style={{ fontSize: 15 }}>close</span>
+                    </button>
+                </>)}
                 <button className="btn btn-ghost btn-sm" onClick={() => onEdit(item)} title="Editar" style={{ padding: '5px 8px' }}>
                     <span className="material-icons-round" style={{ fontSize: 15 }}>edit</span>
                 </button>
@@ -112,7 +108,8 @@ export default function AdminDestaques() {
     const [items, setItems] = useState([]);
     const [businesses, setBusinesses] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [tab, setTab] = useState('pending'); // 'pending' | 'carousel' | 'card' | 'active'
+    const [tab, setTab] = useState('carousel');       // 'carousel' | 'card' | 'active'
+    const [statusFilter, setStatusFilter] = useState('pending'); // 'pending' por padrão
     const [modal, setModal] = useState(null);
     const [viewModal, setViewModal] = useState(null);
     const [approveModal, setApproveModal] = useState(null);
@@ -134,7 +131,6 @@ export default function AdminDestaques() {
         } catch { }
         setLoading(false);
     }, []);
-
     useEffect(() => { load(); }, [load]);
 
     const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -143,99 +139,76 @@ export default function AdminDestaques() {
         if (!form.business_id && !modal?.id) return;
         setSaving(true);
         try {
-            if (modal?.id) {
-                await api.put(`/admin/highlights/${modal.id}`, form);
-            } else {
-                await api.post('/admin/highlights', form);
-            }
+            if (modal?.id) await api.put(`/admin/highlights/${modal.id}`, form);
+            else await api.post('/admin/highlights', form);
             setModal(null); load();
         } catch (err) { alert(err.response?.data?.error || 'Erro'); }
         setSaving(false);
     };
-
-    const remove = async (id) => {
-        if (!window.confirm('Remover destaque?')) return;
-        await api.delete(`/admin/highlights/${id}`);
-        load();
-    };
-
+    const remove = async (id) => { if (!window.confirm('Remover destaque?')) return; await api.delete(`/admin/highlights/${id}`); load(); };
     const approve = async () => {
-        if (!approveModal) return;
-        setSaving(true);
-        try {
-            await api.put(`/admin/highlights/${approveModal.id}/approve`, { days: approveDays });
-            setApproveModal(null); load();
-        } catch (err) { alert(err.response?.data?.error || 'Erro'); }
-        setSaving(false);
+        if (!approveModal) return; setSaving(true);
+        try { await api.put(`/admin/highlights/${approveModal.id}/approve`, { days: approveDays }); setApproveModal(null); load(); }
+        catch (err) { alert(err.response?.data?.error || 'Erro'); } setSaving(false);
     };
-
     const reject = async () => {
-        if (!rejectModal) return;
-        setSaving(true);
-        try {
-            await api.put(`/admin/highlights/${rejectModal.id}/reject`, { admin_notes: rejectNotes });
-            setRejectModal(null); setRejectNotes(''); load();
-        } catch (err) { alert(err.response?.data?.error || 'Erro'); }
-        setSaving(false);
+        if (!rejectModal) return; setSaving(true);
+        try { await api.put(`/admin/highlights/${rejectModal.id}/reject`, { admin_notes: rejectNotes }); setRejectModal(null); setRejectNotes(''); load(); }
+        catch (err) { alert(err.response?.data?.error || 'Erro'); } setSaving(false);
     };
-
     const openEdit = (item) => {
         setForm({
-            business_id: item.business_id, type: item.type,
-            title: item.title || '', subtitle: item.subtitle || '',
+            business_id: item.business_id, type: item.type, title: item.title || '', subtitle: item.subtitle || '',
             sort_order: item.sort_order || 0, active: !!item.active,
             starts_at: item.starts_at ? new Date(item.starts_at).toISOString().slice(0, 16) : '',
-            ends_at: item.ends_at ? new Date(item.ends_at).toISOString().slice(0, 16) : '',
+            ends_at: item.ends_at ? new Date(item.ends_at).toISOString().slice(0, 16) : ''
         });
         setModal(item);
     };
-
     const openNew = () => {
-        const type = tab === 'carousel' ? 'carousel' : tab === 'card' ? 'card' : 'carousel';
+        const type = tab === 'card' ? 'card' : 'carousel';
         setForm(NEW_FORM(type));
         setModal('new');
     };
 
     // ── Contagens ──
     const now = new Date();
-    const pendingAll = items.filter(i => i.status === 'pending');
-    const activeCarousel = items.filter(i => i.type === 'carousel' && i.status === 'approved' && i.active && (!i.ends_at || new Date(i.ends_at) >= now));
-    const activeCards = items.filter(i => i.type === 'card' && i.status === 'approved' && i.active && (!i.ends_at || new Date(i.ends_at) >= now));
     const allCarousel = items.filter(i => i.type === 'carousel');
     const allCards = items.filter(i => i.type === 'card');
+    const activeCarousel = allCarousel.filter(i => i.status === 'approved' && i.active && (!i.ends_at || new Date(i.ends_at) >= now));
+    const activeCards = allCards.filter(i => i.status === 'approved' && i.active && (!i.ends_at || new Date(i.ends_at) >= now));
+    const pendingCarousel = allCarousel.filter(i => i.status === 'pending').length;
+    const pendingCard = allCards.filter(i => i.status === 'pending').length;
 
-    // ── Itens filtrados pela aba ──
-    let filteredItems = [];
+    // ── Itens filtrados ──
+    let displayItems = [];
     let showType = false;
-    if (tab === 'pending') {
-        filteredItems = pendingAll;
+    if (tab === 'active') {
+        displayItems = [...activeCarousel, ...activeCards];
         showType = true;
-    } else if (tab === 'carousel') {
-        filteredItems = allCarousel;
-    } else if (tab === 'card') {
-        filteredItems = allCards;
-    } else if (tab === 'active') {
-        filteredItems = [...activeCarousel, ...activeCards];
-        showType = true;
+    } else {
+        const typeItems = tab === 'carousel' ? allCarousel : allCards;
+        displayItems = statusFilter ? typeItems.filter(i => i.status === statusFilter) : typeItems;
     }
 
-    // Ordenar: pendentes primeiro, depois ativos, depois inativos/expirados
-    const sortedItems = [...filteredItems].sort((a, b) => {
+    // Ordenar: pendentes primeiro, ativos, inativos/expirados
+    const sortedItems = [...displayItems].sort((a, b) => {
         const order = { pending: 0, approved: 1, rejected: 2 };
         const diff = (order[a.status] ?? 3) - (order[b.status] ?? 3);
         if (diff !== 0) return diff;
-        // Ativos antes de inativos/expirados
-        const aActive = a.active && (!a.ends_at || new Date(a.ends_at) >= now) ? 0 : 1;
-        const bActive = b.active && (!b.ends_at || new Date(b.ends_at) >= now) ? 0 : 1;
-        return aActive - bActive || (a.sort_order || 0) - (b.sort_order || 0);
+        const aAct = a.active && (!a.ends_at || new Date(a.ends_at) >= now) ? 0 : 1;
+        const bAct = b.active && (!b.ends_at || new Date(b.ends_at) >= now) ? 0 : 1;
+        return aAct - bAct || (a.sort_order || 0) - (b.sort_order || 0);
     });
 
-    const TABS = [
-        { key: 'pending', label: 'Pendentes', icon: 'pending_actions', count: pendingAll.length, accent: pendingAll.length > 0 },
-        { key: 'carousel', label: 'Carrossel', icon: 'view_carousel', count: allCarousel.length, sub: `${activeCarousel.length} ativos` },
-        { key: 'card', label: 'Cards Destaque', icon: 'view_module', count: allCards.length, sub: `${activeCards.length} ativos` },
-        { key: 'active', label: 'Ativos Agora', icon: 'visibility', count: activeCarousel.length + activeCards.length },
-    ];
+    // Status counts para aba Carrossel / Card
+    const currentTypeItems = tab === 'carousel' ? allCarousel : allCards;
+    const statusCounts = {
+        '': currentTypeItems.length,
+        pending: currentTypeItems.filter(i => i.status === 'pending').length,
+        approved: currentTypeItems.filter(i => i.status === 'approved').length,
+        rejected: currentTypeItems.filter(i => i.status === 'rejected').length
+    };
 
     if (loading) return <div className="page-loading"><div className="spinner" /></div>;
 
@@ -246,86 +219,125 @@ export default function AdminDestaques() {
                     <h1>⭐ Destaques</h1>
                     <p>Gerencie o carrossel e cards de destaque</p>
                 </div>
-                <button className="btn btn-primary" onClick={openNew}>
-                    <span className="material-icons-round">add</span> Novo Destaque
-                </button>
+                {tab !== 'active' && (
+                    <button className="btn btn-primary" onClick={openNew}>
+                        <span className="material-icons-round">add</span>
+                        Novo {tab === 'carousel' ? 'Carrossel' : 'Destaque'}
+                    </button>
+                )}
             </div>
 
-            {/* ── Abas ── */}
-            <div style={{ display: 'flex', gap: 0, borderBottom: '2px solid var(--border-light)', marginBottom: 20, overflowX: 'auto' }}>
-                {TABS.map(t => (
-                    <button key={t.key} onClick={() => setTab(t.key)} style={{
+            {/* ── Abas principais: Carrossel | Destaques | Ativos Agora ── */}
+            <div style={{ display: 'flex', gap: 0, borderBottom: '2px solid var(--border-light)', marginBottom: 16 }}>
+                {[
+                    { key: 'carousel', label: 'Carrossel', icon: 'view_carousel', badge: pendingCarousel },
+                    { key: 'card', label: 'Cards Destaque', icon: 'view_module', badge: pendingCard },
+                    { key: 'active', label: 'Ativos Agora', icon: 'visibility', badge: activeCarousel.length + activeCards.length, badgeColor: 'var(--success)' },
+                ].map(t => (
+                    <button key={t.key} onClick={() => { setTab(t.key); setStatusFilter('pending'); }} style={{
                         display: 'flex', alignItems: 'center', gap: 6,
-                        padding: '12px 18px', border: 'none', cursor: 'pointer',
+                        padding: '12px 20px', border: 'none', cursor: 'pointer',
                         background: 'transparent', whiteSpace: 'nowrap',
                         color: tab === t.key ? 'var(--primary-light)' : 'var(--text-muted)',
-                        fontWeight: tab === t.key ? 700 : 500, fontSize: '0.85rem',
+                        fontWeight: tab === t.key ? 700 : 500, fontSize: '0.88rem',
                         borderBottom: tab === t.key ? '2px solid var(--primary)' : '2px solid transparent',
                         marginBottom: '-2px', transition: 'all 0.2s',
                     }}>
-                        <span className="material-icons-round" style={{ fontSize: 17 }}>{t.icon}</span>
+                        <span className="material-icons-round" style={{ fontSize: 18 }}>{t.icon}</span>
                         {t.label}
-                        {t.count > 0 && (
+                        {t.badge > 0 && (
                             <span style={{
-                                background: t.accent ? 'var(--accent)' : 'var(--bg-surface)',
-                                color: t.accent ? '#fff' : 'var(--text-muted)',
-                                borderRadius: 'var(--radius-full)',
-                                padding: '1px 8px', fontSize: '0.68rem', fontWeight: 800,
-                                minWidth: 20, textAlign: 'center',
-                            }}>{t.count}</span>
+                                background: t.badgeColor || 'var(--accent)', color: '#fff', borderRadius: '50%',
+                                width: 20, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: '0.65rem', fontWeight: 800
+                            }}>{t.badge}</span>
                         )}
                     </button>
                 ))}
             </div>
 
-            {/* Info da aba ativa */}
-            {tab === 'active' && (
-                <div style={{ display: 'flex', gap: 14, marginBottom: 16 }}>
-                    <div style={{ flex: 1, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.12)', borderRadius: 'var(--radius-md)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span className="material-icons-round" style={{ fontSize: 22, color: 'var(--primary-light)' }}>view_carousel</span>
-                        <div>
-                            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--primary-light)' }}>{activeCarousel.length}</div>
-                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Ativos no Carrossel</div>
-                        </div>
-                    </div>
-                    <div style={{ flex: 1, background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.12)', borderRadius: 'var(--radius-md)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span className="material-icons-round" style={{ fontSize: 22, color: 'var(--accent)' }}>view_module</span>
-                        <div>
-                            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--accent)' }}>{activeCards.length}</div>
-                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Ativos nos Cards</div>
-                        </div>
-                    </div>
+            {/* ── Filtros por status (só para Carrossel e Cards) ── */}
+            {tab !== 'active' && (
+                <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+                    {STATUS_FILTERS.map(f => (
+                        <button key={f.key} className={`btn btn-sm ${statusFilter === f.key ? 'btn-primary' : 'btn-ghost'}`}
+                            onClick={() => setStatusFilter(f.key)} style={{ fontSize: '0.78rem' }}>
+                            <span className="material-icons-round" style={{ fontSize: 14 }}>{f.icon}</span>
+                            {f.label}
+                            <span style={{ opacity: 0.7, marginLeft: 2, fontSize: '0.7rem' }}>({statusCounts[f.key]})</span>
+                        </button>
+                    ))}
                 </div>
             )}
 
-            {tab === 'pending' && pendingAll.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--text-muted)' }}>
-                    <span className="material-icons-round" style={{ fontSize: 52, display: 'block', marginBottom: 14, color: 'var(--success)' }}>task_alt</span>
-                    <h3 style={{ fontSize: '1.1rem', marginBottom: 6 }}>Nenhuma pendência! 🎉</h3>
-                    <p style={{ fontSize: '0.85rem' }}>Todas as solicitações foram analisadas.</p>
+            {/* ── Resumo Ativos Agora ── */}
+            {tab === 'active' && (
+                <div style={{ display: 'flex', gap: 14, marginBottom: 20 }}>
+                    <div style={{ flex: 1, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 'var(--radius-lg)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <span className="material-icons-round" style={{ fontSize: 28, color: 'var(--primary-light)' }}>view_carousel</span>
+                        <div>
+                            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary-light)' }}>{activeCarousel.length}</div>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Ativos no Carrossel</div>
+                        </div>
+                    </div>
+                    <div style={{ flex: 1, background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: 'var(--radius-lg)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <span className="material-icons-round" style={{ fontSize: 28, color: 'var(--accent)' }}>view_module</span>
+                        <div>
+                            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent)' }}>{activeCards.length}</div>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Ativos nos Cards</div>
+                        </div>
+                    </div>
                 </div>
             )}
 
             {/* ── Lista ── */}
-            {sortedItems.length === 0 && tab !== 'pending' ? (
+            {sortedItems.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--text-muted)' }}>
                     <span className="material-icons-round" style={{ fontSize: 48, display: 'block', marginBottom: 12 }}>
-                        {tab === 'carousel' ? 'view_carousel' : tab === 'active' ? 'visibility_off' : 'view_module'}
+                        {tab === 'active' ? 'visibility_off' : tab === 'carousel' ? 'view_carousel' : 'view_module'}
                     </span>
-                    Nenhum item encontrado nesta aba
+                    {tab === 'active'
+                        ? 'Nenhum destaque ativo no momento'
+                        : statusFilter === 'pending'
+                            ? <><h3 style={{ fontSize: '1rem', marginBottom: 6, color: 'var(--success)' }}>Nenhuma pendência! 🎉</h3><p style={{ fontSize: '0.85rem' }}>Todas as solicitações foram analisadas.</p></>
+                            : `Nenhum item encontrado`}
                 </div>
-            ) : sortedItems.length > 0 && (
+            ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {sortedItems.map(item => (
-                        <HighlightItem key={item.id} item={item}
-                            showType={showType}
-                            onApprove={h => { setApproveModal(h); setApproveDays(7); }}
-                            onReject={h => { setRejectModal(h); setRejectNotes(''); }}
-                            onEdit={openEdit}
-                            onView={h => setViewModal(h)}
-                            onDelete={remove}
-                        />
-                    ))}
+                    {/* Separação visual na aba Ativos */}
+                    {tab === 'active' ? (<>
+                        {activeCarousel.length > 0 && (
+                            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--primary-light)', textTransform: 'uppercase', letterSpacing: '0.04em', padding: '8px 0 4px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span className="material-icons-round" style={{ fontSize: 16 }}>view_carousel</span>
+                                Carrossel ({activeCarousel.length})
+                            </div>
+                        )}
+                        {activeCarousel.map(item => (
+                            <HighlightItem key={item.id} item={item} showType={false}
+                                onApprove={h => { setApproveModal(h); setApproveDays(7); }}
+                                onReject={h => { setRejectModal(h); setRejectNotes(''); }}
+                                onEdit={openEdit} onView={h => setViewModal(h)} onDelete={remove} />
+                        ))}
+                        {activeCards.length > 0 && (
+                            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.04em', padding: '14px 0 4px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span className="material-icons-round" style={{ fontSize: 16 }}>view_module</span>
+                                Cards Destaque ({activeCards.length})
+                            </div>
+                        )}
+                        {activeCards.map(item => (
+                            <HighlightItem key={item.id} item={item} showType={false}
+                                onApprove={h => { setApproveModal(h); setApproveDays(7); }}
+                                onReject={h => { setRejectModal(h); setRejectNotes(''); }}
+                                onEdit={openEdit} onView={h => setViewModal(h)} onDelete={remove} />
+                        ))}
+                    </>) : (
+                        sortedItems.map(item => (
+                            <HighlightItem key={item.id} item={item} showType={showType}
+                                onApprove={h => { setApproveModal(h); setApproveDays(7); }}
+                                onReject={h => { setRejectModal(h); setRejectNotes(''); }}
+                                onEdit={openEdit} onView={h => setViewModal(h)} onDelete={remove} />
+                        ))
+                    )}
                 </div>
             )}
 
@@ -359,7 +371,6 @@ export default function AdminDestaques() {
                                     {viewModal.subtitle && <p style={{ color: 'rgba(255,255,255,0.8)', margin: '4px 0 0', fontSize: '0.8rem' }}>{viewModal.subtitle}</p>}
                                 </div>
                             </div>
-
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 20px', fontSize: '0.83rem' }}>
                                 <InfoCell label="Negócio" value={viewModal.business_name} />
                                 <InfoCell label="Status">
@@ -388,18 +399,16 @@ export default function AdminDestaques() {
                         </div>
                         <div className="modal-footer">
                             <button className="btn btn-ghost" onClick={() => setViewModal(null)}>Fechar</button>
-                            {viewModal.status === 'pending' && (
-                                <>
-                                    <button className="btn btn-sm" style={{ background: 'var(--success)', color: '#fff' }}
-                                        onClick={() => { setViewModal(null); setApproveModal(viewModal); setApproveDays(7); }}>
-                                        <span className="material-icons-round" style={{ fontSize: 15 }}>check</span> Aprovar
-                                    </button>
-                                    <button className="btn btn-sm" style={{ background: 'var(--danger)', color: '#fff' }}
-                                        onClick={() => { setViewModal(null); setRejectModal(viewModal); setRejectNotes(''); }}>
-                                        <span className="material-icons-round" style={{ fontSize: 15 }}>close</span> Recusar
-                                    </button>
-                                </>
-                            )}
+                            {viewModal.status === 'pending' && (<>
+                                <button className="btn btn-sm" style={{ background: 'var(--success)', color: '#fff' }}
+                                    onClick={() => { setViewModal(null); setApproveModal(viewModal); setApproveDays(7); }}>
+                                    <span className="material-icons-round" style={{ fontSize: 15 }}>check</span> Aprovar
+                                </button>
+                                <button className="btn btn-sm" style={{ background: 'var(--danger)', color: '#fff' }}
+                                    onClick={() => { setViewModal(null); setRejectModal(viewModal); setRejectNotes(''); }}>
+                                    <span className="material-icons-round" style={{ fontSize: 15 }}>close</span> Recusar
+                                </button>
+                            </>)}
                             <button className="btn btn-primary btn-sm" onClick={() => { setViewModal(null); openEdit(viewModal); }}>
                                 <span className="material-icons-round" style={{ fontSize: 15 }}>edit</span> Editar
                             </button>
@@ -500,7 +509,7 @@ export default function AdminDestaques() {
                                 <span className="material-icons-round" style={{ fontSize: 20, color: 'var(--primary-light)' }}>
                                     {modal === 'new' ? 'add_circle' : 'edit'}
                                 </span>
-                                {modal === 'new' ? 'Novo Destaque' : 'Editar Destaque'}
+                                {modal === 'new' ? `Novo ${form.type === 'carousel' ? 'Carrossel' : 'Destaque'}` : 'Editar Destaque'}
                             </h3>
                             <button className="btn btn-ghost btn-sm" onClick={() => setModal(null)} style={{ padding: '6px' }}>
                                 <span className="material-icons-round" style={{ fontSize: 18 }}>close</span>
@@ -530,12 +539,12 @@ export default function AdminDestaques() {
                                 </div>
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Título (opcional)</label>
-                                <input className="form-input" value={form.title} onChange={e => set('title', e.target.value)} placeholder="Usa o nome do negócio se vazio..." />
+                                <label className="form-label">Título (opcional — usa nome do negócio se vazio)</label>
+                                <input className="form-input" value={form.title} onChange={e => set('title', e.target.value)} placeholder="Título personalizado..." />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Subtítulo (opcional)</label>
-                                <input className="form-input" value={form.subtitle} onChange={e => set('subtitle', e.target.value)} placeholder="Usa a descrição curta se vazio..." />
+                                <label className="form-label">Subtítulo (opcional — usa descrição curta se vazio)</label>
+                                <input className="form-input" value={form.subtitle} onChange={e => set('subtitle', e.target.value)} placeholder="Subtítulo personalizado..." />
                             </div>
                             <div className="form-grid cols-2">
                                 <div className="form-group">
@@ -569,7 +578,6 @@ export default function AdminDestaques() {
     );
 }
 
-// ── Componente auxiliar ──
 function InfoCell({ label, value, children }) {
     return (
         <div>
