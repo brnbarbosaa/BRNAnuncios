@@ -30,7 +30,7 @@ router.get('/home', async (req, res) => {
        ORDER BY h.sort_order ASC LIMIT 20`
         );
 
-        // Últimos 12 anúncios ativos (Premium primeiro, depois por data)
+        // Últimos 10 anúncios ativos (Premium primeiro, depois por data)
         const [latest] = await db.execute(
             `SELECT b.id, b.name, b.slug, b.short_description, b.logo,
               b.neighborhood, b.city, b.whatsapp, b.phone, b.plan,
@@ -38,7 +38,7 @@ router.get('/home', async (req, res) => {
        FROM businesses b
        LEFT JOIN categories cat ON cat.id = b.category_id
        WHERE b.status = 'active'
-       ORDER BY FIELD(b.plan, 'premium', 'basic', 'free'), b.created_at DESC LIMIT 12`
+       ORDER BY FIELD(b.plan, 'premium', 'basic', 'free'), b.created_at DESC LIMIT 10`
         );
 
         // Configurações relevantes da home
@@ -59,12 +59,14 @@ router.get('/categories', async (req, res) => {
     try {
         const [rows] = await db.execute(
             `SELECT cat.id, cat.name, cat.slug, cat.icon, cat.color,
-                    COUNT(b.id) AS business_count
+                    COUNT(b.id) AS business_count,
+                    COALESCE(SUM(b.views), 0) AS total_views
              FROM categories cat
              LEFT JOIN businesses b ON b.category_id = cat.id AND b.status = 'active'
              GROUP BY cat.id
              HAVING business_count > 0
-             ORDER BY business_count DESC, cat.name ASC`
+             ORDER BY total_views DESC, business_count DESC, cat.name ASC
+             LIMIT 6`
         );
         return res.json(rows);
     } catch (err) {
@@ -236,6 +238,18 @@ router.get('/plans', async (req, res) => {
         return res.json(plans);
     } catch (err) {
         return res.status(500).json({ error: 'Erro ao carregar planos.' });
+    }
+});
+
+// GET /api/public/faqs — lista FAQs ativas para a home
+router.get('/faqs', async (req, res) => {
+    try {
+        const [rows] = await db.execute(
+            'SELECT id, question, answer, sort_order FROM faqs WHERE active = 1 ORDER BY sort_order ASC'
+        );
+        return res.json(rows);
+    } catch (err) {
+        return res.status(500).json({ error: 'Erro ao carregar FAQs.' });
     }
 });
 

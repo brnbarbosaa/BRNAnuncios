@@ -535,4 +535,51 @@ router.put('/settings', async (req, res) => {
     return res.json({ message: 'Configurações salvas.' });
 });
 
+// ═══════════════════════════════════════
+//  FAQ (PERGUNTAS FREQUENTES)
+// ═══════════════════════════════════════
+router.get('/faqs', async (req, res) => {
+    try {
+        const [rows] = await db.execute('SELECT * FROM faqs ORDER BY sort_order ASC, id DESC');
+        return res.json(rows);
+    } catch (err) {
+        return res.status(500).json({ error: 'Erro ao listar FAQs.' });
+    }
+});
+
+router.post('/faqs', async (req, res) => {
+    const { question, answer, sort_order, active } = req.body;
+    try {
+        const [result] = await db.execute(
+            'INSERT INTO faqs (question, answer, sort_order, active) VALUES (?,?,?,?)',
+            [question, answer, parseInt(sort_order) || 0, active !== false ? 1 : 0]
+        );
+        return res.status(201).json({ message: 'FAQ criado com sucesso.', id: result.insertId });
+    } catch (err) {
+        return res.status(500).json({ error: 'Erro ao criar FAQ.' });
+    }
+});
+
+router.put('/faqs/:id', async (req, res) => {
+    const { question, answer, sort_order, active } = req.body;
+    try {
+        await db.execute(
+            'UPDATE faqs SET question=?, answer=?, sort_order=?, active=?, updated_at=NOW() WHERE id=?',
+            [question, answer, parseInt(sort_order) || 0, active !== false ? 1 : 0, req.params.id]
+        );
+        return res.json({ message: 'FAQ atualizado com sucesso.' });
+    } catch (err) {
+        return res.status(500).json({ error: 'Erro ao atualizar FAQ.' });
+    }
+});
+
+router.delete('/faqs/:id', async (req, res) => {
+    try {
+        await db.execute('DELETE FROM faqs WHERE id=?', [req.params.id]);
+        return res.json({ message: 'FAQ excluído com sucesso.' });
+    } catch (err) {
+        return res.status(500).json({ error: 'Erro ao excluir FAQ.' });
+    }
+});
+
 module.exports = router;

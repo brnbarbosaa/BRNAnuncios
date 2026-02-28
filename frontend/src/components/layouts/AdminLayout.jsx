@@ -12,6 +12,7 @@ const navItems = [
     { to: '/admin/destaques', icon: 'star', label: 'Destaques' },
     { to: '/admin/planos', icon: 'workspace_premium', label: 'Planos' },
     { to: '/admin/configuracoes', icon: 'settings', label: 'Configurações' },
+    { to: '/admin/faq', icon: 'help_outline', label: 'FAQ' },
     { to: '/admin/logs', icon: 'terminal', label: 'Logs do Sistema' },
 ];
 

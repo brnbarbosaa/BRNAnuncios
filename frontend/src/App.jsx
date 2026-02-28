@@ -32,6 +32,7 @@ import AdminRequisicoes from './pages/admin/Requisicoes';
 import AdminCategorias from './pages/admin/Categorias';
 import AdminDestaques from './pages/admin/Destaques';
 import AdminPlanos from './pages/admin/Planos';
+import AdminFaq from './pages/admin/Faq';
 import AdminLogs from './pages/admin/Logs';
 import AdminConfiguracoes from './pages/admin/Configuracoes';
 
@@ -82,6 +83,7 @@ export default function App() {
                         <Route path="categorias" element={<AdminCategorias />} />
                         <Route path="destaques" element={<AdminDestaques />} />
                         <Route path="planos" element={<AdminPlanos />} />
+                        <Route path="faq" element={<AdminFaq />} />
                         <Route path="logs" element={<AdminLogs />} />
                         <Route path="configuracoes" element={<AdminConfiguracoes />} />
                     </Route>

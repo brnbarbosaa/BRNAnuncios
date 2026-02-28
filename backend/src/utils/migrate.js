@@ -57,6 +57,19 @@ async function runMigration() {
             console.log(`✅ [migrate] Admin atualizado com credenciais das env vars: ${devEmail}`);
         }
 
+        // ── Cria tabela de faqs se não existir ─────────────────────────────
+        await conn.execute(`
+            CREATE TABLE IF NOT EXISTS faqs (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                question VARCHAR(300) NOT NULL,
+                answer TEXT NOT NULL,
+                sort_order INT UNSIGNED DEFAULT 0,
+                active TINYINT(1) DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
         // ── Cria tabela de planos se não existir ─────────────────────────────
         await conn.execute(`
             CREATE TABLE IF NOT EXISTS plans (

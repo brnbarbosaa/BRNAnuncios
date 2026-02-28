@@ -9,19 +9,24 @@ export default function Home() {
     const [data, setData] = useState(null);
     const [plans, setPlans] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [faqs, setFaqs] = useState([]);
+    const [openFaq, setOpenFaq] = useState(null);
     const [loading, setLoading] = useState(true);
     const [carouselIdx, setCarouselIdx] = useState(0);
     const intervalRef = useRef(null);
+    const latestScrollRef = useRef(null);
 
     useEffect(() => {
         Promise.all([
             api.get('/public/home'),
             api.get('/public/plans').catch(() => ({ data: [] })),
             api.get('/public/categories').catch(() => ({ data: [] })),
-        ]).then(([homeRes, plansRes, catRes]) => {
+            api.get('/public/faqs').catch(() => ({ data: [] })),
+        ]).then(([homeRes, plansRes, catRes, faqsRes]) => {
             setData(homeRes.data);
             setPlans(plansRes.data || []);
             setCategories(catRes.data || []);
+            setFaqs(faqsRes.data || []);
         }).finally(() => setLoading(false));
     }, []);
 
@@ -33,6 +38,24 @@ export default function Home() {
             setCarouselIdx(i => (i + 1) % data.carousel.length);
         }, ms);
         return () => clearInterval(intervalRef.current);
+    }, [data]);
+
+    // Auto-avanço de Novidades (Últimos anúncios)
+    useEffect(() => {
+        if (!data?.latest?.length) return;
+        const ms = 3500;
+        const scrollLatest = setInterval(() => {
+            if (latestScrollRef.current) {
+                const el = latestScrollRef.current;
+                const maxScroll = el.scrollWidth - el.clientWidth;
+                if (el.scrollLeft >= maxScroll - 10) {
+                    el.scrollTo({ left: 0, behavior: 'smooth' });
+                } else {
+                    el.scrollBy({ left: 304, behavior: 'smooth' });
+                }
+            }
+        }, ms);
+        return () => clearInterval(scrollLatest);
     }, [data]);
 
     if (loading) return <div className="page-loading" style={{ paddingTop: 100 }}><div className="spinner" /><p>Carregando...</p></div>;
@@ -202,8 +225,12 @@ export default function Home() {
                             <h2>🏙️ Novidades <span style={{ color: 'var(--primary-light)' }}>na Região</span></h2>
                             <p>Conheça os últimos negócios publicados no guia</p>
                         </div>
-                        <div className="businesses-grid">
-                            {latest.map(b => <BusinessCard key={b.id} business={b} />)}
+                        <div className="cards-scroll" ref={latestScrollRef} style={{ paddingBottom: 16 }}>
+                            {latest.map(b => (
+                                <div key={b.id} style={{ minWidth: 280, flexShrink: 0 }}>
+                                    <BusinessCard business={b} />
+                                </div>
+                            ))}
                         </div>
                         <div style={{ textAlign: 'center', marginTop: 32 }}>
                             <Link to="/anuncios" className="btn btn-ghost btn-lg">
@@ -256,13 +283,38 @@ export default function Home() {
                                                 <li key={i}><span className="material-icons-round">check_circle</span> {f}</li>
                                             ))}
                                         </ul>
-                                        <a href={contactHref} className={`btn btn-lg ${isHighlight ? 'btn-primary' : 'btn-ghost'}`} style={{ textAlign: 'center' }}>
+                                        <Link to={contactHref} className={`btn btn-lg ${isHighlight ? 'btn-primary' : 'btn-ghost'}`} style={{ textAlign: 'center' }}>
                                             <span className="material-icons-round">rocket_launch</span>
                                             {parseFloat(plan.price) === 0 ? 'Começar grátis' : 'Quero este plano'}
-                                        </a>
+                                        </Link>
                                     </div>
                                 );
                             })}
+                        </div>
+                    </div>
+                </section>
+            )}
+
+            {/* ── FAQ (Perguntas Frequentes) ── */}
+            {faqs.length > 0 && (
+                <section className="section faq-section">
+                    <div className="container">
+                        <div className="section-title">
+                            <h2>Perguntas <span style={{ color: 'var(--primary-light)' }}>Frequentes</span></h2>
+                            <p>Tire suas dúvidas rapidamente</p>
+                        </div>
+                        <div className="faq-list">
+                            {faqs.map((faq, index) => (
+                                <div key={faq.id} className={`faq-item ${openFaq === index ? 'open' : ''}`}>
+                                    <div className="faq-header" onClick={() => setOpenFaq(openFaq === index ? null : index)}>
+                                        {faq.question}
+                                        <span className="material-icons-round faq-icon">expand_more</span>
+                                    </div>
+                                    <div className="faq-body">
+                                        <div style={{ whiteSpace: 'pre-line' }}>{faq.answer}</div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </section>
