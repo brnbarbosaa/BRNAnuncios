@@ -5,16 +5,12 @@ const { PLAN_FEATURES } = require('../utils/planFeatures');
 // GET /api/public/home — dados completos da home
 router.get('/home', async (req, res) => {
     try {
-        // Carrossel — usa COALESCE para pegar banner_image OU logo do negócio
+        // Carrossel — independente dos negócios, pego da tabela carousels
         const [carousel] = await db.execute(
-            `SELECT h.id, h.title, h.subtitle,
-              COALESCE(h.banner_image, b.logo) AS resolved_image,
-              b.name, b.slug, b.short_description, b.logo, b.neighborhood
-       FROM highlights h
-       LEFT JOIN businesses b ON b.id = h.business_id
-       WHERE h.type = 'carousel' AND h.active = 1 AND h.status = 'approved'
-         AND (h.ends_at IS NULL OR h.ends_at > DATE_SUB(NOW(), INTERVAL 3 HOUR))
-       ORDER BY h.sort_order ASC LIMIT 10`
+            `SELECT id, title, subtitle, image_url AS resolved_image, link_url
+       FROM carousels
+       WHERE active = 1
+       ORDER BY sort_order ASC LIMIT 10`
         );
 
         // Cards de destaque rotativos

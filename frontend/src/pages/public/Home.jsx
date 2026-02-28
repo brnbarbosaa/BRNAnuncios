@@ -225,10 +225,10 @@ export default function Home() {
                             <h2>🏙️ Novidades <span style={{ color: 'var(--primary-light)' }}>na Região</span></h2>
                             <p>Conheça os últimos negócios publicados no guia</p>
                         </div>
-                        <div className="cards-scroll" ref={latestScrollRef} style={{ paddingBottom: 16 }}>
+                        <div className="cards-scroll" ref={latestScrollRef} style={{ paddingBottom: 16, display: 'flex', alignItems: 'stretch' }}>
                             {latest.map(b => (
-                                <div key={b.id} style={{ minWidth: 280, flexShrink: 0 }}>
-                                    <BusinessCard business={b} />
+                                <div key={b.id} style={{ minWidth: 280, flexShrink: 0, display: 'flex', height: '100%' }}>
+                                    <BusinessCard business={b} style={{ flex: 1, height: '100%' }} />
                                 </div>
                             ))}
                         </div>
@@ -295,6 +295,18 @@ export default function Home() {
                 </section>
             )}
 
+            {/* ── CTA Final ── */}
+            <section className="cta-section">
+                <div className="container cta-content">
+                    <h2>Você tem um comércio, serviço ou atende na região?</h2>
+                    <p>Milhares de pessoas buscam serviços no bairro todos os dias. Não fique de fora, anuncie de forma simples e rápida.</p>
+                    <Link to="/solicitar-cadastro" className="btn btn-primary btn-lg" style={{ marginTop: 24 }}>
+                        <span className="material-icons-round" style={{ fontSize: 20 }}>rocket_launch</span>
+                        Criar meu anúncio agora
+                    </Link>
+                </div>
+            </section>
+
             {/* ── FAQ (Perguntas Frequentes) ── */}
             {faqs.length > 0 && (
                 <section className="section faq-section">
@@ -321,16 +333,7 @@ export default function Home() {
             )}
 
             {/* ── CTA Final ── */}
-            <section className="cta-section">
-                <div className="container cta-content">
-                    <h2>Você tem um comércio, serviço ou atende na região?</h2>
-                    <p>Milhares de pessoas buscam serviços no bairro todos os dias. Não fique de fora, anuncie de forma simples e rápida.</p>
-                    <Link to="/solicitar-cadastro" className="btn btn-primary btn-lg" style={{ marginTop: 24 }}>
-                        <span className="material-icons-round" style={{ fontSize: 20 }}>rocket_launch</span>
-                        Criar meu anúncio agora
-                    </Link>
-                </div>
-            </section>
+
         </div>
     );
 }

@@ -582,4 +582,51 @@ router.delete('/faqs/:id', async (req, res) => {
     }
 });
 
+// ═══════════════════════════════════════
+//  CARROSSEL INDEPENDENTE (CAPA)
+// ═══════════════════════════════════════
+router.get('/carousels', async (req, res) => {
+    try {
+        const [rows] = await db.execute('SELECT * FROM carousels ORDER BY sort_order ASC, id DESC');
+        return res.json(rows);
+    } catch (err) {
+        return res.status(500).json({ error: 'Erro ao listar carrosséis.' });
+    }
+});
+
+router.post('/carousels', async (req, res) => {
+    const { title, subtitle, image_url, link_url, sort_order, active } = req.body;
+    try {
+        const [result] = await db.execute(
+            'INSERT INTO carousels (title, subtitle, image_url, link_url, sort_order, active) VALUES (?,?,?,?,?,?)',
+            [title || null, subtitle || null, image_url, link_url || null, parseInt(sort_order) || 0, active !== false ? 1 : 0]
+        );
+        return res.status(201).json({ message: 'Carrossel criado.', id: result.insertId });
+    } catch (err) {
+        return res.status(500).json({ error: 'Erro ao criar carrossel.' });
+    }
+});
+
+router.put('/carousels/:id', async (req, res) => {
+    const { title, subtitle, image_url, link_url, sort_order, active } = req.body;
+    try {
+        await db.execute(
+            'UPDATE carousels SET title=?, subtitle=?, image_url=?, link_url=?, sort_order=?, active=?, updated_at=NOW() WHERE id=?',
+            [title || null, subtitle || null, image_url, link_url || null, parseInt(sort_order) || 0, active !== false ? 1 : 0, req.params.id]
+        );
+        return res.json({ message: 'Carrossel atualizado.' });
+    } catch (err) {
+        return res.status(500).json({ error: 'Erro ao atualizar carrossel.' });
+    }
+});
+
+router.delete('/carousels/:id', async (req, res) => {
+    try {
+        await db.execute('DELETE FROM carousels WHERE id=?', [req.params.id]);
+        return res.json({ message: 'Carrossel excluído.' });
+    } catch (err) {
+        return res.status(500).json({ error: 'Erro ao excluir carrossel.' });
+    }
+});
+
 module.exports = router;

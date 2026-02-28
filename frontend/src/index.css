@@ -790,9 +790,9 @@ tbody td {
   content: '';
   position: absolute;
   z-index: 1;
-  inset: 1px;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, var(--bg-card) 60%);
-  border-radius: calc(var(--radius-xl) - 1px);
+  inset: 2px;
+  background: var(--bg-card);
+  border-radius: calc(var(--radius-xl) - 2px);
 }
 
 .plan-card.plan-highlight>* {

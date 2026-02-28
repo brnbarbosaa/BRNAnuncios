@@ -108,8 +108,7 @@ export default function AdminDestaques() {
     const [items, setItems] = useState([]);
     const [businesses, setBusinesses] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [tab, setTab] = useState('carousel');       // 'carousel' | 'card' | 'active'
-    const [statusFilter, setStatusFilter] = useState('pending'); // 'pending' por padrão
+    const [statusFilter, setStatusFilter] = useState('pending'); // 'pending' | '' (todos) | 'approved' | 'rejected' | 'active'
     const [modal, setModal] = useState(null);
     const [viewModal, setViewModal] = useState(null);
     const [approveModal, setApproveModal] = useState(null);
@@ -166,29 +165,22 @@ export default function AdminDestaques() {
         setModal(item);
     };
     const openNew = () => {
-        const type = tab === 'card' ? 'card' : 'carousel';
-        setForm(NEW_FORM(type));
+        setForm(NEW_FORM('card'));
         setModal('new');
     };
 
     // ── Contagens ──
     const now = new Date();
-    const allCarousel = items.filter(i => i.type === 'carousel');
     const allCards = items.filter(i => i.type === 'card');
-    const activeCarousel = allCarousel.filter(i => i.status === 'approved' && i.active && (!i.ends_at || new Date(i.ends_at) >= now));
     const activeCards = allCards.filter(i => i.status === 'approved' && i.active && (!i.ends_at || new Date(i.ends_at) >= now));
-    const pendingCarousel = allCarousel.filter(i => i.status === 'pending').length;
     const pendingCard = allCards.filter(i => i.status === 'pending').length;
 
     // ── Itens filtrados ──
     let displayItems = [];
-    let showType = false;
-    if (tab === 'active') {
-        displayItems = [...activeCarousel, ...activeCards];
-        showType = true;
+    if (statusFilter === 'active') {
+        displayItems = activeCards;
     } else {
-        const typeItems = tab === 'carousel' ? allCarousel : allCards;
-        displayItems = statusFilter ? typeItems.filter(i => i.status === statusFilter) : typeItems;
+        displayItems = statusFilter ? allCards.filter(i => i.status === statusFilter) : allCards;
     }
 
     // Ordenar: pendentes primeiro, ativos, inativos/expirados
@@ -201,13 +193,13 @@ export default function AdminDestaques() {
         return aAct - bAct || (a.sort_order || 0) - (b.sort_order || 0);
     });
 
-    // Status counts para aba Carrossel / Card
-    const currentTypeItems = tab === 'carousel' ? allCarousel : allCards;
+    // Status counts
     const statusCounts = {
-        '': currentTypeItems.length,
-        pending: currentTypeItems.filter(i => i.status === 'pending').length,
-        approved: currentTypeItems.filter(i => i.status === 'approved').length,
-        rejected: currentTypeItems.filter(i => i.status === 'rejected').length
+        '': allCards.length,
+        pending: allCards.filter(i => i.status === 'pending').length,
+        approved: allCards.filter(i => i.status === 'approved').length,
+        rejected: allCards.filter(i => i.status === 'rejected').length,
+        active: activeCards.length
     };
 
     if (loading) return <div className="page-loading"><div className="spinner" /></div>;
@@ -217,364 +209,292 @@ export default function AdminDestaques() {
             <div className="page-header">
                 <div>
                     <h1>⭐ Destaques</h1>
-                    <p>Gerencie o carrossel e cards de destaque</p>
+                    <p>Gerencie as solicitações de Cards em Destaque dos clientes</p>
                 </div>
-                {tab !== 'active' && (
-                    <button className="btn btn-primary" onClick={openNew}>
-                        <span className="material-icons-round">add</span>
-                        Novo {tab === 'carousel' ? 'Carrossel' : 'Destaque'}
-                    </button>
-                )}
+                <button className="btn btn-primary" onClick={openNew}>
+                    <span className="material-icons-round">add</span>
+                    Novo Destaque Manual
+                </button>
             </div>
 
-            {/* ── Abas principais: Carrossel | Destaques | Ativos Agora ── */}
-            <div style={{ display: 'flex', gap: 0, borderBottom: '2px solid var(--border-light)', marginBottom: 16 }}>
+            {/* ── Filtros de Status ── */}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
                 {[
-                    { key: 'carousel', label: 'Carrossel', icon: 'view_carousel', badge: pendingCarousel },
-                    { key: 'card', label: 'Cards Destaque', icon: 'view_module', badge: pendingCard },
-                    { key: 'active', label: 'Ativos Agora', icon: 'visibility', badge: activeCarousel.length + activeCards.length, badgeColor: 'var(--success)' },
-                ].map(t => (
-                    <button key={t.key} onClick={() => { setTab(t.key); setStatusFilter('pending'); }} style={{
-                        display: 'flex', alignItems: 'center', gap: 6,
-                        padding: '12px 20px', border: 'none', cursor: 'pointer',
-                        background: 'transparent', whiteSpace: 'nowrap',
-                        color: tab === t.key ? 'var(--primary-light)' : 'var(--text-muted)',
-                        fontWeight: tab === t.key ? 700 : 500, fontSize: '0.88rem',
-                        borderBottom: tab === t.key ? '2px solid var(--primary)' : '2px solid transparent',
-                        marginBottom: '-2px', transition: 'all 0.2s',
-                    }}>
-                        <span className="material-icons-round" style={{ fontSize: 18 }}>{t.icon}</span>
-                        {t.label}
-                        {t.badge > 0 && (
-                            <span style={{
-                                background: t.badgeColor || 'var(--accent)', color: '#fff', borderRadius: '50%',
-                                width: 20, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: '0.65rem', fontWeight: 800
-                            }}>{t.badge}</span>
-                        )}
-                    </button>
+                    { key: 'pending', label: 'Pendentes', icon: 'hourglass_top' },
+                    { key: '', label: 'Todos', icon: 'list' },
+                    { key: 'approved', label: 'Aprovados', icon: 'check_circle' },
+                    { key: 'rejected', label: 'Recusados', icon: 'cancel' },
+                    { key: 'active', label: 'Ativos Agora', icon: 'visibility' },
+                ].map(f => {
+                    const isActive = statusFilter === f.key;
+                    const c = statusCounts[f.key] || 0;
+                    return (
+                        <button key={f.key} onClick={() => setStatusFilter(f.key)} className="btn btn-sm" style={{
+                            background: isActive
+                                ? (f.key === 'pending' ? 'var(--primary)' : f.key === 'active' ? 'var(--success)' : 'var(--bg-card)')
+                                : 'transparent',
+                            color: isActive
+                                ? (f.key === 'pending' || f.key === 'active' ? '#fff' : 'var(--text-primary)')
+                                : 'var(--text-secondary)',
+                            border: `1px solid ${isActive && (f.key === 'pending' || f.key === 'active') ? 'transparent' : 'var(--border-light)'}`,
+                            boxShadow: isActive ? 'var(--shadow-sm)' : 'none',
+                            fontWeight: isActive ? 600 : 500, padding: '8px 16px', borderRadius: 20
+                        }}>
+                            <span className="material-icons-round" style={{ fontSize: 16 }}>{f.icon}</span>
+                            {f.label} {c > 0 && <span style={{
+                                background: isActive ? 'rgba(255,255,255,0.2)' : 'var(--bg-surface)',
+                                color: isActive && (f.key === 'pending' || f.key === 'active') ? '#fff' : 'var(--text-primary)',
+                                padding: '2px 8px', borderRadius: 12, fontSize: '0.75rem', marginLeft: 6
+                            }}>{c}</span>}
+                        </button>
+                    );
+                })}
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {sortedItems.map(item => (
+                    <HighlightItem key={item.id} item={item} showType={false}
+                        onApprove={h => { setApproveModal(h); setApproveDays(7); }}
+                        onReject={h => { setRejectModal(h); setRejectNotes(''); }}
+                        onEdit={openEdit} onView={h => setViewModal(h)} onDelete={remove} />
                 ))}
             </div>
 
-            {/* ── Filtros por status (só para Carrossel e Cards) ── */}
-            {tab !== 'active' && (
-                <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
-                    {STATUS_FILTERS.map(f => (
-                        <button key={f.key} className={`btn btn-sm ${statusFilter === f.key ? 'btn-primary' : 'btn-ghost'}`}
-                            onClick={() => setStatusFilter(f.key)} style={{ fontSize: '0.78rem' }}>
-                            <span className="material-icons-round" style={{ fontSize: 14 }}>{f.icon}</span>
-                            {f.label}
-                            <span style={{ opacity: 0.7, marginLeft: 2, fontSize: '0.7rem' }}>({statusCounts[f.key]})</span>
-                        </button>
-                    ))}
-                </div>
-            )}
-
-            {/* ── Resumo Ativos Agora ── */}
-            {tab === 'active' && (
-                <div style={{ display: 'flex', gap: 14, marginBottom: 20 }}>
-                    <div style={{ flex: 1, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 'var(--radius-lg)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <span className="material-icons-round" style={{ fontSize: 28, color: 'var(--primary-light)' }}>view_carousel</span>
-                        <div>
-                            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary-light)' }}>{activeCarousel.length}</div>
-                            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Ativos no Carrossel</div>
-                        </div>
-                    </div>
-                    <div style={{ flex: 1, background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: 'var(--radius-lg)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <span className="material-icons-round" style={{ fontSize: 28, color: 'var(--accent)' }}>view_module</span>
-                        <div>
-                            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent)' }}>{activeCards.length}</div>
-                            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Ativos nos Cards</div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* ── Lista ── */}
-            {sortedItems.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--text-muted)' }}>
-                    <span className="material-icons-round" style={{ fontSize: 48, display: 'block', marginBottom: 12 }}>
-                        {tab === 'active' ? 'visibility_off' : tab === 'carousel' ? 'view_carousel' : 'view_module'}
-                    </span>
-                    {tab === 'active'
-                        ? 'Nenhum destaque ativo no momento'
-                        : statusFilter === 'pending'
-                            ? <><h3 style={{ fontSize: '1rem', marginBottom: 6, color: 'var(--success)' }}>Nenhuma pendência! 🎉</h3><p style={{ fontSize: '0.85rem' }}>Todas as solicitações foram analisadas.</p></>
-                            : `Nenhum item encontrado`}
-                </div>
-            ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {/* Separação visual na aba Ativos */}
-                    {tab === 'active' ? (<>
-                        {activeCarousel.length > 0 && (
-                            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--primary-light)', textTransform: 'uppercase', letterSpacing: '0.04em', padding: '8px 0 4px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <span className="material-icons-round" style={{ fontSize: 16 }}>view_carousel</span>
-                                Carrossel ({activeCarousel.length})
-                            </div>
-                        )}
-                        {activeCarousel.map(item => (
-                            <HighlightItem key={item.id} item={item} showType={false}
-                                onApprove={h => { setApproveModal(h); setApproveDays(7); }}
-                                onReject={h => { setRejectModal(h); setRejectNotes(''); }}
-                                onEdit={openEdit} onView={h => setViewModal(h)} onDelete={remove} />
-                        ))}
-                        {activeCards.length > 0 && (
-                            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.04em', padding: '14px 0 4px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <span className="material-icons-round" style={{ fontSize: 16 }}>view_module</span>
-                                Cards Destaque ({activeCards.length})
-                            </div>
-                        )}
-                        {activeCards.map(item => (
-                            <HighlightItem key={item.id} item={item} showType={false}
-                                onApprove={h => { setApproveModal(h); setApproveDays(7); }}
-                                onReject={h => { setRejectModal(h); setRejectNotes(''); }}
-                                onEdit={openEdit} onView={h => setViewModal(h)} onDelete={remove} />
-                        ))}
-                    </>) : (
-                        sortedItems.map(item => (
-                            <HighlightItem key={item.id} item={item} showType={showType}
-                                onApprove={h => { setApproveModal(h); setApproveDays(7); }}
-                                onReject={h => { setRejectModal(h); setRejectNotes(''); }}
-                                onEdit={openEdit} onView={h => setViewModal(h)} onDelete={remove} />
-                        ))
-                    )}
-                </div>
-            )}
-
             {/* ══════════ MODAL: Ver Detalhes ══════════ */}
-            {viewModal && (
-                <div className="modal-overlay" onClick={() => setViewModal(null)}>
-                    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 540 }}>
-                        <div className="modal-header">
-                            <h3 style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span className="material-icons-round" style={{ fontSize: 20, color: 'var(--primary-light)' }}>visibility</span>
-                                Detalhes do Destaque
-                            </h3>
-                            <button className="btn btn-ghost btn-sm" onClick={() => setViewModal(null)} style={{ padding: '6px' }}>
-                                <span className="material-icons-round" style={{ fontSize: 18 }}>close</span>
-                            </button>
-                        </div>
-                        <div className="modal-body">
-                            <div style={{ height: 150, borderRadius: 'var(--radius-lg)', overflow: 'hidden', position: 'relative', marginBottom: 20 }}>
-                                {viewModal.logo ? (
-                                    <img src={viewModal.logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                ) : (
-                                    <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(16,185,129,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <span className="material-icons-round" style={{ fontSize: 48, color: 'var(--text-muted)' }}>store</span>
-                                    </div>
-                                )}
-                                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.75) 100%)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '14px 18px' }}>
-                                    <span style={{ display: 'inline-flex', width: 'fit-content', background: 'var(--primary)', color: '#fff', padding: '2px 10px', borderRadius: 'var(--radius-full)', fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>
-                                        {viewModal.type === 'carousel' ? '🖼️ Carrossel' : '🃏 Destaque'}
-                                    </span>
-                                    <h3 style={{ color: '#fff', margin: 0, fontSize: '1.1rem' }}>{viewModal.title || viewModal.business_name}</h3>
-                                    {viewModal.subtitle && <p style={{ color: 'rgba(255,255,255,0.8)', margin: '4px 0 0', fontSize: '0.8rem' }}>{viewModal.subtitle}</p>}
-                                </div>
+            {
+                viewModal && (
+                    <div className="modal-overlay" onClick={() => setViewModal(null)}>
+                        <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 540 }}>
+                            <div className="modal-header">
+                                <h3 style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span className="material-icons-round" style={{ fontSize: 20, color: 'var(--primary-light)' }}>visibility</span>
+                                    Detalhes do Destaque
+                                </h3>
+                                <button className="btn btn-ghost btn-sm" onClick={() => setViewModal(null)} style={{ padding: '6px' }}>
+                                    <span className="material-icons-round" style={{ fontSize: 18 }}>close</span>
+                                </button>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 20px', fontSize: '0.83rem' }}>
-                                <InfoCell label="Negócio" value={viewModal.business_name} />
-                                <InfoCell label="Status">
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: (STATUS_MAP[viewModal.status] || STATUS_MAP.approved).color, fontWeight: 600 }}>
-                                        <span className="material-icons-round" style={{ fontSize: 14 }}>{(STATUS_MAP[viewModal.status] || STATUS_MAP.approved).icon}</span>
-                                        {(STATUS_MAP[viewModal.status] || STATUS_MAP.approved).label}
-                                    </span>
-                                </InfoCell>
-                                <InfoCell label="Plano" value={viewModal.business_plan === 'premium' ? '💎 Premium' : viewModal.business_plan === 'basic' ? '⭐ Básico' : '🆓 Gratuito'} />
-                                <InfoCell label="Tipo" value={viewModal.type === 'carousel' ? '🖼️ Carrossel' : '🃏 Card'} />
-                                <InfoCell label="Início" value={fmtDateTime(viewModal.starts_at)} />
-                                <InfoCell label="Fim" value={fmtDateTime(viewModal.ends_at)} />
-                                {viewModal.requested_at && <InfoCell label="Solicitado" value={fmtDateTime(viewModal.requested_at)} />}
-                                {viewModal.reviewed_at && <InfoCell label="Revisado" value={fmtDateTime(viewModal.reviewed_at)} />}
-                                <div style={{ gridColumn: 'span 2' }}>
-                                    <InfoCell label="Exibição" value={`Ordem #${viewModal.sort_order} — ${viewModal.active ? '🟢 Ativo' : '🔴 Inativo'}${viewModal.ends_at && new Date(viewModal.ends_at) < new Date() ? ' — ⏰ Expirado' : ''}`} />
+                            <div className="modal-body">
+                                <div style={{ height: 150, borderRadius: 'var(--radius-lg)', overflow: 'hidden', position: 'relative', marginBottom: 20 }}>
+                                    {viewModal.logo ? (
+                                        <img src={viewModal.logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                        <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(16,185,129,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <span className="material-icons-round" style={{ fontSize: 48, color: 'var(--text-muted)' }}>store</span>
+                                        </div>
+                                    )}
+                                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.75) 100%)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '14px 18px' }}>
+                                        <span style={{ display: 'inline-flex', width: 'fit-content', background: 'var(--primary)', color: '#fff', padding: '2px 10px', borderRadius: 'var(--radius-full)', fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>
+                                            {viewModal.type === 'carousel' ? '🖼️ Carrossel' : '🃏 Destaque'}
+                                        </span>
+                                        <h3 style={{ color: '#fff', margin: 0, fontSize: '1.1rem' }}>{viewModal.title || viewModal.business_name}</h3>
+                                        {viewModal.subtitle && <p style={{ color: 'rgba(255,255,255,0.8)', margin: '4px 0 0', fontSize: '0.8rem' }}>{viewModal.subtitle}</p>}
+                                    </div>
                                 </div>
-                                {viewModal.admin_notes && (
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 20px', fontSize: '0.83rem' }}>
+                                    <InfoCell label="Negócio" value={viewModal.business_name} />
+                                    <InfoCell label="Status">
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: (STATUS_MAP[viewModal.status] || STATUS_MAP.approved).color, fontWeight: 600 }}>
+                                            <span className="material-icons-round" style={{ fontSize: 14 }}>{(STATUS_MAP[viewModal.status] || STATUS_MAP.approved).icon}</span>
+                                            {(STATUS_MAP[viewModal.status] || STATUS_MAP.approved).label}
+                                        </span>
+                                    </InfoCell>
+                                    <InfoCell label="Plano" value={viewModal.business_plan === 'premium' ? '💎 Premium' : viewModal.business_plan === 'basic' ? '⭐ Básico' : '🆓 Gratuito'} />
+                                    <InfoCell label="Tipo" value={viewModal.type === 'carousel' ? '🖼️ Carrossel' : '🃏 Card'} />
+                                    <InfoCell label="Início" value={fmtDateTime(viewModal.starts_at)} />
+                                    <InfoCell label="Fim" value={fmtDateTime(viewModal.ends_at)} />
+                                    {viewModal.requested_at && <InfoCell label="Solicitado" value={fmtDateTime(viewModal.requested_at)} />}
+                                    {viewModal.reviewed_at && <InfoCell label="Revisado" value={fmtDateTime(viewModal.reviewed_at)} />}
                                     <div style={{ gridColumn: 'span 2' }}>
-                                        <InfoCell label="Notas do Admin">
-                                            <div style={{ background: 'var(--bg-surface)', padding: '8px 12px', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', fontSize: '0.82rem' }}>{viewModal.admin_notes}</div>
-                                        </InfoCell>
+                                        <InfoCell label="Exibição" value={`Ordem #${viewModal.sort_order} — ${viewModal.active ? '🟢 Ativo' : '🔴 Inativo'}${viewModal.ends_at && new Date(viewModal.ends_at) < new Date() ? ' — ⏰ Expirado' : ''}`} />
                                     </div>
-                                )}
+                                    {viewModal.admin_notes && (
+                                        <div style={{ gridColumn: 'span 2' }}>
+                                            <InfoCell label="Notas do Admin">
+                                                <div style={{ background: 'var(--bg-surface)', padding: '8px 12px', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', fontSize: '0.82rem' }}>{viewModal.admin_notes}</div>
+                                            </InfoCell>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                        <div className="modal-footer">
-                            <button className="btn btn-ghost" onClick={() => setViewModal(null)}>Fechar</button>
-                            {viewModal.status === 'pending' && (<>
-                                <button className="btn btn-sm" style={{ background: 'var(--success)', color: '#fff' }}
-                                    onClick={() => { setViewModal(null); setApproveModal(viewModal); setApproveDays(7); }}>
-                                    <span className="material-icons-round" style={{ fontSize: 15 }}>check</span> Aprovar
+                            <div className="modal-footer">
+                                <button className="btn btn-ghost" onClick={() => setViewModal(null)}>Fechar</button>
+                                {viewModal.status === 'pending' && (<>
+                                    <button className="btn btn-sm" style={{ background: 'var(--success)', color: '#fff' }}
+                                        onClick={() => { setViewModal(null); setApproveModal(viewModal); setApproveDays(7); }}>
+                                        <span className="material-icons-round" style={{ fontSize: 15 }}>check</span> Aprovar
+                                    </button>
+                                    <button className="btn btn-sm" style={{ background: 'var(--danger)', color: '#fff' }}
+                                        onClick={() => { setViewModal(null); setRejectModal(viewModal); setRejectNotes(''); }}>
+                                        <span className="material-icons-round" style={{ fontSize: 15 }}>close</span> Recusar
+                                    </button>
+                                </>)}
+                                <button className="btn btn-primary btn-sm" onClick={() => { setViewModal(null); openEdit(viewModal); }}>
+                                    <span className="material-icons-round" style={{ fontSize: 15 }}>edit</span> Editar
                                 </button>
-                                <button className="btn btn-sm" style={{ background: 'var(--danger)', color: '#fff' }}
-                                    onClick={() => { setViewModal(null); setRejectModal(viewModal); setRejectNotes(''); }}>
-                                    <span className="material-icons-round" style={{ fontSize: 15 }}>close</span> Recusar
-                                </button>
-                            </>)}
-                            <button className="btn btn-primary btn-sm" onClick={() => { setViewModal(null); openEdit(viewModal); }}>
-                                <span className="material-icons-round" style={{ fontSize: 15 }}>edit</span> Editar
-                            </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* ══════════ MODAL: Aprovar ══════════ */}
-            {approveModal && (
-                <div className="modal-overlay" onClick={() => setApproveModal(null)}>
-                    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
-                        <div className="modal-header">
-                            <h3 style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span className="material-icons-round" style={{ fontSize: 20, color: 'var(--success)' }}>check_circle</span>
-                                Aprovar Destaque
-                            </h3>
-                            <button className="btn btn-ghost btn-sm" onClick={() => setApproveModal(null)} style={{ padding: '6px' }}>
-                                <span className="material-icons-round" style={{ fontSize: 18 }}>close</span>
-                            </button>
-                        </div>
-                        <div className="modal-body">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, padding: '12px 16px', background: 'rgba(16,185,129,0.06)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(16,185,129,0.15)' }}>
-                                {approveModal.logo && <img src={approveModal.logo} alt="" style={{ width: 42, height: 42, borderRadius: 8, objectFit: 'cover' }} />}
-                                <div>
-                                    <strong style={{ fontSize: '0.92rem' }}>{approveModal.business_name}</strong>
-                                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{approveModal.type === 'carousel' ? '🖼️ Carrossel' : '🃏 Card Destaque'}</div>
+            {
+                approveModal && (
+                    <div className="modal-overlay" onClick={() => setApproveModal(null)}>
+                        <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
+                            <div className="modal-header">
+                                <h3 style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span className="material-icons-round" style={{ fontSize: 20, color: 'var(--success)' }}>check_circle</span>
+                                    Aprovar Destaque
+                                </h3>
+                                <button className="btn btn-ghost btn-sm" onClick={() => setApproveModal(null)} style={{ padding: '6px' }}>
+                                    <span className="material-icons-round" style={{ fontSize: 18 }}>close</span>
+                                </button>
+                            </div>
+                            <div className="modal-body">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, padding: '12px 16px', background: 'rgba(16,185,129,0.06)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(16,185,129,0.15)' }}>
+                                    {approveModal.logo && <img src={approveModal.logo} alt="" style={{ width: 42, height: 42, borderRadius: 8, objectFit: 'cover' }} />}
+                                    <div>
+                                        <strong style={{ fontSize: '0.92rem' }}>{approveModal.business_name}</strong>
+                                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{approveModal.type === 'carousel' ? '🖼️ Carrossel' : '🃏 Card Destaque'}</div>
+                                    </div>
+                                </div>
+                                <div className="form-group" style={{ marginBottom: 16 }}>
+                                    <label className="form-label">Período de exibição</label>
+                                    <select className="form-select" value={approveDays} onChange={e => setApproveDays(Number(e.target.value))}>
+                                        <option value={3}>3 dias</option>
+                                        <option value={7}>7 dias (recomendado)</option>
+                                        <option value={14}>14 dias</option>
+                                        <option value={30}>30 dias</option>
+                                        <option value={60}>60 dias</option>
+                                    </select>
+                                </div>
+                                <div style={{ padding: '10px 14px', background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.12)', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                    <span className="material-icons-round" style={{ fontSize: 14, verticalAlign: 'middle', marginRight: 4 }}>info</span>
+                                    Será exibido por <strong>{approveDays}</strong> dias usando a imagem de capa do negócio.
                                 </div>
                             </div>
-                            <div className="form-group" style={{ marginBottom: 16 }}>
-                                <label className="form-label">Período de exibição</label>
-                                <select className="form-select" value={approveDays} onChange={e => setApproveDays(Number(e.target.value))}>
-                                    <option value={3}>3 dias</option>
-                                    <option value={7}>7 dias (recomendado)</option>
-                                    <option value={14}>14 dias</option>
-                                    <option value={30}>30 dias</option>
-                                    <option value={60}>60 dias</option>
-                                </select>
+                            <div className="modal-footer">
+                                <button className="btn btn-ghost" onClick={() => setApproveModal(null)}>Cancelar</button>
+                                <button className="btn" style={{ background: 'var(--success)', color: '#fff' }} onClick={approve} disabled={saving}>
+                                    {saving ? <div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> : <>
+                                        <span className="material-icons-round" style={{ fontSize: 16 }}>check_circle</span> Aprovar {approveDays}d</>}
+                                </button>
                             </div>
-                            <div style={{ padding: '10px 14px', background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.12)', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                                <span className="material-icons-round" style={{ fontSize: 14, verticalAlign: 'middle', marginRight: 4 }}>info</span>
-                                Será exibido por <strong>{approveDays}</strong> dias usando a imagem de capa do negócio.
-                            </div>
-                        </div>
-                        <div className="modal-footer">
-                            <button className="btn btn-ghost" onClick={() => setApproveModal(null)}>Cancelar</button>
-                            <button className="btn" style={{ background: 'var(--success)', color: '#fff' }} onClick={approve} disabled={saving}>
-                                {saving ? <div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> : <>
-                                    <span className="material-icons-round" style={{ fontSize: 16 }}>check_circle</span> Aprovar {approveDays}d</>}
-                            </button>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* ══════════ MODAL: Recusar ══════════ */}
-            {rejectModal && (
-                <div className="modal-overlay" onClick={() => setRejectModal(null)}>
-                    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
-                        <div className="modal-header">
-                            <h3 style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span className="material-icons-round" style={{ fontSize: 20, color: 'var(--danger)' }}>block</span>
-                                Recusar Solicitação
-                            </h3>
-                            <button className="btn btn-ghost btn-sm" onClick={() => setRejectModal(null)} style={{ padding: '6px' }}>
-                                <span className="material-icons-round" style={{ fontSize: 18 }}>close</span>
-                            </button>
-                        </div>
-                        <div className="modal-body">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, padding: '12px 16px', background: 'rgba(239,68,68,0.06)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(239,68,68,0.12)' }}>
-                                {rejectModal.logo && <img src={rejectModal.logo} alt="" style={{ width: 42, height: 42, borderRadius: 8, objectFit: 'cover' }} />}
-                                <strong style={{ fontSize: '0.92rem' }}>{rejectModal.business_name}</strong>
+            {
+                rejectModal && (
+                    <div className="modal-overlay" onClick={() => setRejectModal(null)}>
+                        <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
+                            <div className="modal-header">
+                                <h3 style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span className="material-icons-round" style={{ fontSize: 20, color: 'var(--danger)' }}>block</span>
+                                    Recusar Solicitação
+                                </h3>
+                                <button className="btn btn-ghost btn-sm" onClick={() => setRejectModal(null)} style={{ padding: '6px' }}>
+                                    <span className="material-icons-round" style={{ fontSize: 18 }}>close</span>
+                                </button>
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">Motivo da recusa (opcional)</label>
-                                <textarea className="form-textarea" rows={3} value={rejectNotes} onChange={e => setRejectNotes(e.target.value)}
-                                    placeholder="Ex: Imagem de capa não atende os critérios..." style={{ minHeight: 80 }} />
-                                <small style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>Este motivo será exibido ao cliente.</small>
+                            <div className="modal-body">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, padding: '12px 16px', background: 'rgba(239,68,68,0.06)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(239,68,68,0.12)' }}>
+                                    {rejectModal.logo && <img src={rejectModal.logo} alt="" style={{ width: 42, height: 42, borderRadius: 8, objectFit: 'cover' }} />}
+                                    <strong style={{ fontSize: '0.92rem' }}>{rejectModal.business_name}</strong>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Motivo da recusa (opcional)</label>
+                                    <textarea className="form-textarea" rows={3} value={rejectNotes} onChange={e => setRejectNotes(e.target.value)}
+                                        placeholder="Ex: Imagem de capa não atende os critérios..." style={{ minHeight: 80 }} />
+                                    <small style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>Este motivo será exibido ao cliente.</small>
+                                </div>
                             </div>
-                        </div>
-                        <div className="modal-footer">
-                            <button className="btn btn-ghost" onClick={() => setRejectModal(null)}>Cancelar</button>
-                            <button className="btn" style={{ background: 'var(--danger)', color: '#fff' }} onClick={reject} disabled={saving}>
-                                {saving ? <div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> : <>
-                                    <span className="material-icons-round" style={{ fontSize: 16 }}>block</span> Recusar</>}
-                            </button>
+                            <div className="modal-footer">
+                                <button className="btn btn-ghost" onClick={() => setRejectModal(null)}>Cancelar</button>
+                                <button className="btn" style={{ background: 'var(--danger)', color: '#fff' }} onClick={reject} disabled={saving}>
+                                    {saving ? <div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> : <>
+                                        <span className="material-icons-round" style={{ fontSize: 16 }}>block</span> Recusar</>}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* ══════════ MODAL: Criar / Editar ══════════ */}
-            {modal && (
-                <div className="modal-overlay" onClick={() => setModal(null)}>
-                    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
-                        <div className="modal-header">
-                            <h3 style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span className="material-icons-round" style={{ fontSize: 20, color: 'var(--primary-light)' }}>
-                                    {modal === 'new' ? 'add_circle' : 'edit'}
-                                </span>
-                                {modal === 'new' ? `Novo ${form.type === 'carousel' ? 'Carrossel' : 'Destaque'}` : 'Editar Destaque'}
-                            </h3>
-                            <button className="btn btn-ghost btn-sm" onClick={() => setModal(null)} style={{ padding: '6px' }}>
-                                <span className="material-icons-round" style={{ fontSize: 18 }}>close</span>
-                            </button>
-                        </div>
-                        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                            {modal === 'new' && (
-                                <div className="form-group">
-                                    <label className="form-label">Negócio *</label>
-                                    <select className="form-select" value={form.business_id} onChange={e => set('business_id', e.target.value)}>
-                                        <option value="">Selecione um negócio...</option>
-                                        {businesses.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                                    </select>
-                                </div>
-                            )}
-                            <div className="form-grid cols-2">
-                                <div className="form-group">
-                                    <label className="form-label">Tipo</label>
-                                    <select className="form-select" value={form.type} onChange={e => set('type', e.target.value)}>
-                                        <option value="carousel">🖼️ Carrossel</option>
-                                        <option value="card">🃏 Card Destaque</option>
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">Ordem</label>
-                                    <input className="form-input" type="number" value={form.sort_order} onChange={e => set('sort_order', Number(e.target.value))} />
-                                </div>
+            {
+                modal && (
+                    <div className="modal-overlay" onClick={() => setModal(null)}>
+                        <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
+                            <div className="modal-header">
+                                <h3 style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span className="material-icons-round" style={{ fontSize: 20, color: 'var(--primary-light)' }}>
+                                        {modal === 'new' ? 'add_circle' : 'edit'}
+                                    </span>
+                                    {modal === 'new' ? `Novo ${form.type === 'carousel' ? 'Carrossel' : 'Destaque'}` : 'Editar Destaque'}
+                                </h3>
+                                <button className="btn btn-ghost btn-sm" onClick={() => setModal(null)} style={{ padding: '6px' }}>
+                                    <span className="material-icons-round" style={{ fontSize: 18 }}>close</span>
+                                </button>
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">Título (opcional — usa nome do negócio se vazio)</label>
-                                <input className="form-input" value={form.title} onChange={e => set('title', e.target.value)} placeholder="Título personalizado..." />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Subtítulo (opcional — usa descrição curta se vazio)</label>
-                                <input className="form-input" value={form.subtitle} onChange={e => set('subtitle', e.target.value)} placeholder="Subtítulo personalizado..." />
-                            </div>
-                            <div className="form-grid cols-2">
-                                <div className="form-group">
-                                    <label className="form-label">Início</label>
-                                    <input className="form-input" type="datetime-local" value={form.starts_at} onChange={e => set('starts_at', e.target.value)} />
+                            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                {modal === 'new' && (
+                                    <div className="form-group">
+                                        <label className="form-label">Negócio *</label>
+                                        <select className="form-select" value={form.business_id} onChange={e => set('business_id', e.target.value)}>
+                                            <option value="">Selecione um negócio...</option>
+                                            {businesses.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                        </select>
+                                    </div>
+                                )}
+                                <div className="form-grid cols-2">
+                                    <div className="form-group">
+                                        <label className="form-label">Ordem</label>
+                                        <input className="form-input" type="number" value={form.sort_order} onChange={e => set('sort_order', Number(e.target.value))} />
+                                    </div>
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">Fim</label>
-                                    <input className="form-input" type="datetime-local" value={form.ends_at} onChange={e => set('ends_at', e.target.value)} />
+                                    <label className="form-label">Título (opcional — usa nome do negócio se vazio)</label>
+                                    <input className="form-input" value={form.title} onChange={e => set('title', e.target.value)} placeholder="Título personalizado..." />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Subtítulo (opcional — usa descrição curta se vazio)</label>
+                                    <input className="form-input" value={form.subtitle} onChange={e => set('subtitle', e.target.value)} placeholder="Subtítulo personalizado..." />
+                                </div>
+                                <div className="form-grid cols-2">
+                                    <div className="form-group">
+                                        <label className="form-label">Início</label>
+                                        <input className="form-input" type="datetime-local" value={form.starts_at} onChange={e => set('starts_at', e.target.value)} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Fim</label>
+                                        <input className="form-input" type="datetime-local" value={form.ends_at} onChange={e => set('ends_at', e.target.value)} />
+                                    </div>
+                                </div>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.9rem' }}>
+                                    <input type="checkbox" checked={form.active} onChange={e => set('active', e.target.checked)} />
+                                    Ativo
+                                </label>
+                                <div style={{ padding: '10px 12px', background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span className="material-icons-round" style={{ fontSize: 15, color: 'var(--info)' }}>info</span>
+                                    A imagem de capa do negócio será usada automaticamente.
                                 </div>
                             </div>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.9rem' }}>
-                                <input type="checkbox" checked={form.active} onChange={e => set('active', e.target.checked)} />
-                                Ativo
-                            </label>
-                            <div style={{ padding: '10px 12px', background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <span className="material-icons-round" style={{ fontSize: 15, color: 'var(--info)' }}>info</span>
-                                A imagem de capa do negócio será usada automaticamente.
+                            <div className="modal-footer">
+                                <button className="btn btn-ghost" onClick={() => setModal(null)}>Cancelar</button>
+                                <button className="btn btn-primary" onClick={save} disabled={saving}>
+                                    {saving ? <div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> : <><span className="material-icons-round" style={{ fontSize: 16 }}>save</span> Salvar</>}
+                                </button>
                             </div>
-                        </div>
-                        <div className="modal-footer">
-                            <button className="btn btn-ghost" onClick={() => setModal(null)}>Cancelar</button>
-                            <button className="btn btn-primary" onClick={save} disabled={saving}>
-                                {saving ? <div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> : <><span className="material-icons-round" style={{ fontSize: 16 }}>save</span> Salvar</>}
-                            </button>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }
 

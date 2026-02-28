@@ -183,8 +183,8 @@ export default function AdminAnuncioEdit() {
                                     {/* Mostrar observation se for Outros ou se tiver algo preenchido */}
                                     {(categories.find(c => c.id === parseInt(form.category_id))?.slug === 'outros' || form.category_observation) && (
                                         <div style={{ marginTop: 8 }}>
-                                            <input {...inp('category_observation')} placeholder="Especifique a categoria (Outros)..." style={{ borderLeft: '3px solid var(--accent)' }} />
-                                            <small style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>Opcional: Cliente preenche quando não encontra a categoria dele.</small>
+                                            <input {...inp('category_observation')} placeholder="Especifique a sub-categoria ou outra que não existe (Ex: Assistência Técnica)" style={{ borderLeft: '3px solid var(--accent)' }} />
+                                            <small style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>O cliente preenche isso quando não encontra a categoria exata dele. O Administrador pode criar a categoria, alterar acima e apagar essa observação.</small>
                                         </div>
                                     )}
                                 </div>
