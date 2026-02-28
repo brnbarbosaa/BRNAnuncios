@@ -61,7 +61,7 @@ router.put('/business', async (req, res) => {
         const plan = biz.plan || 'free';
 
         const {
-            name, category_id, short_description, description,
+            name, category_id, category_observation, short_description, description,
             phone, whatsapp, email, website, instagram, facebook,
             street, number, complement, neighborhood, city, state, zip_code, tags,
             social_links,
@@ -89,16 +89,22 @@ router.put('/business', async (req, res) => {
             finalSocialLinks = JSON.stringify(links.slice(0, limit));
         }
 
+        // Bloquear alteração de categoria se o negócio já estiver ativo/aprovado
+        let finalCategoryId = biz.category_id;
+        if (biz.status === 'pending') {
+            finalCategoryId = category_id || null;
+        }
+
         await db.execute(
             `UPDATE businesses SET
-        name=?, slug=?, category_id=?, short_description=?, description=?,
+        name=?, slug=?, category_id=?, category_observation=?, short_description=?, description=?,
         phone=?, whatsapp=?, email=?, website=?, instagram=?, facebook=?,
         street=?, number=?, complement=?, neighborhood=?, city=?, state=?, zip_code=?, tags=?,
         social_links=?,
         updated_at=NOW()
        WHERE id=? AND user_id=?`,
             [
-                name, slug, category_id || null, short_description || null, finalDescription,
+                name, slug, finalCategoryId, category_observation || null, short_description || null, finalDescription,
                 phone || null, whatsapp || null, email || null, website || null, instagram || null, facebook || null,
                 finalStreet, finalNumber, finalComplement, finalNeighborhood, finalCity,
                 finalState, finalZip, finalTags,

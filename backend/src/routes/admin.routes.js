@@ -117,14 +117,15 @@ router.get('/businesses', async (req, res) => {
         let where = '1=1'; const params = [];
         if (q) { where += ' AND (b.name LIKE ? OR b.email LIKE ?)'; params.push(`%${q}%`, `%${q}%`); }
         if (status) { where += ' AND b.status = ?'; params.push(status); }
-        if (category) { where += ' AND cat.slug = ?'; params.push(category); }
+        if (category) { where += ' AND c.slug = ?'; params.push(category); }
 
-        const [[{ total }]] = await db.execute(`SELECT COUNT(*) AS total FROM businesses b LEFT JOIN categories cat ON cat.id = b.category_id WHERE ${where}`, params);
+        const [[{ total }]] = await db.execute(`SELECT COUNT(*) AS total FROM businesses b LEFT JOIN categories c ON c.id = b.category_id WHERE ${where}`, params);
         const [businesses] = await db.execute(
             `SELECT b.id, b.name, b.slug, b.logo, b.status, b.plan, b.views, b.featured, b.created_at,
-              cat.name AS category_name, u.name AS owner_name, u.email AS owner_email
+              c.name AS category_name, b.category_observation,
+              u.name AS owner_name, u.email AS owner_email
        FROM businesses b
-       LEFT JOIN categories cat ON cat.id = b.category_id
+       LEFT JOIN categories c ON c.id = b.category_id
        LEFT JOIN users u ON u.id = b.user_id
        WHERE ${where} ORDER BY b.created_at DESC LIMIT ${limit} OFFSET ${offset}`,
             params
@@ -138,9 +139,11 @@ router.get('/businesses', async (req, res) => {
 router.get('/businesses/:id', async (req, res) => {
     try {
         const [rows] = await db.execute(
-            `SELECT b.*, cat.name AS category_name, u.name AS owner_name, u.email AS owner_email
+            `SELECT b.*,
+              c.name AS category_name, b.category_observation,
+              u.name AS owner_name, u.email AS owner_email
        FROM businesses b
-       LEFT JOIN categories cat ON cat.id = b.category_id
+       LEFT JOIN categories c ON c.id = b.category_id
        LEFT JOIN users u ON u.id = b.user_id
        WHERE b.id = ?`,
             [req.params.id]
@@ -156,20 +159,30 @@ router.get('/businesses/:id', async (req, res) => {
 
 router.post('/businesses', async (req, res) => {
     try {
-        const { name, user_id, category_id, short_description, description, phone, whatsapp, email,
-            website, instagram, facebook, street, number, complement, neighborhood, city, state, zip_code, tags, status, plan, social_links } = req.body;
-        if (!name || !user_id) return res.status(400).json({ error: 'Nome e usuário são obrigatórios.' });
+        const {
+            user_id, name, category_id, category_observation, short_description, description,
+            phone, whatsapp, email, website, instagram, facebook,
+            street, number, complement, neighborhood, city, state, zip_code, tags,
+            status = 'pending', plan = 'free', featured = false, featured_order = null,
+            social_links
+        } = req.body;
+
         const slug = slugify(name, { lower: true, strict: true });
-        const slJson = social_links ? JSON.stringify(social_links) : null;
+        const finalSocialLinks = Array.isArray(social_links) ? JSON.stringify(social_links) : null;
+
         const [result] = await db.execute(
-            `INSERT INTO businesses (user_id, category_id, name, slug, short_description, description,
+            `INSERT INTO businesses (
+        user_id, name, slug, category_id, category_observation, short_description, description,
         phone, whatsapp, email, website, instagram, facebook,
-        street, number, complement, neighborhood, city, state, zip_code, tags, status, plan, social_links)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-            [user_id, category_id || null, name, slug, short_description || null, description || null,
+        street, number, complement, neighborhood, city, state, zip_code, tags,
+        status, plan, featured, featured_order, social_links
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+            [
+                user_id, name, slug, category_id || null, category_observation || null, short_description || null, description || null,
                 phone || null, whatsapp || null, email || null, website || null, instagram || null, facebook || null,
-                street || null, number || null, complement || null, neighborhood || null, city || null,
-                state || null, zip_code || null, tags || null, status || 'active', plan || 'free', slJson]
+                street || null, number || null, complement || null, neighborhood || null, city || null, state || null, zip_code || null, tags || null,
+                status, plan, featured ? 1 : 0, featured_order || null, finalSocialLinks
+            ]
         );
         await createLog({ userId: req.user.id, userName: req.user.name, action: 'CREATE_BUSINESS', entity: 'business', entityId: result.insertId, ip: getIp(req), level: 'success' });
         return res.status(201).json({ message: 'Negócio criado.', id: result.insertId });
@@ -181,21 +194,31 @@ router.post('/businesses', async (req, res) => {
 
 router.put('/businesses/:id', async (req, res) => {
     try {
-        const { name, category_id, short_description, description, phone, whatsapp, email,
-            website, instagram, facebook, street, number, complement, neighborhood, city, state, zip_code,
-            tags, status, plan, featured, social_links } = req.body;
+        const {
+            user_id, name, category_id, category_observation, short_description, description,
+            phone, whatsapp, email, website, instagram, facebook,
+            street, number, complement, neighborhood, city, state, zip_code, tags,
+            status, plan, featured, featured_order,
+            social_links
+        } = req.body;
+
         const slug = slugify(name, { lower: true, strict: true });
-        const slJson = social_links ? JSON.stringify(social_links) : null;
+        const finalSocialLinks = Array.isArray(social_links) ? JSON.stringify(social_links) : null;
+
         await db.execute(
-            `UPDATE businesses SET name=?, slug=?, category_id=?, short_description=?, description=?,
+            `UPDATE businesses SET
+        user_id=?, name=?, slug=?, category_id=?, category_observation=?, short_description=?, description=?,
         phone=?, whatsapp=?, email=?, website=?, instagram=?, facebook=?,
-        street=?, number=?, complement=?, neighborhood=?, city=?, state=?, zip_code=?,
-        tags=?, status=?, plan=?, featured=?, social_links=?, updated_at=NOW()
+        street=?, number=?, complement=?, neighborhood=?, city=?, state=?, zip_code=?, tags=?,
+        status=?, plan=?, featured=?, featured_order=?, social_links=?
        WHERE id=?`,
-            [name, slug, category_id || null, short_description || null, description || null,
+            [
+                user_id, name, slug, category_id || null, category_observation || null, short_description || null, description || null,
                 phone || null, whatsapp || null, email || null, website || null, instagram || null, facebook || null,
-                street || null, number || null, complement || null, neighborhood || null, city || null,
-                state || null, zip_code || null, tags || null, status, plan || 'free', featured ? 1 : 0, slJson, req.params.id]
+                street || null, number || null, complement || null, neighborhood || null, city || null, state || null, zip_code || null, tags || null,
+                status, plan, featured ? 1 : 0, featured_order || null, finalSocialLinks,
+                req.params.id
+            ]
         );
         await createLog({ userId: req.user.id, userName: req.user.name, action: 'UPDATE_BUSINESS', entity: 'business', entityId: parseInt(req.params.id), ip: getIp(req), level: 'info' });
         return res.json({ message: 'Negócio atualizado.' });
@@ -272,11 +295,11 @@ router.put('/requests/:id/approve', async (req, res) => {
         // Cria negócio
         const slug = slugify(request.business_name, { lower: true, strict: true });
         const [bizResult] = await db.execute(
-            `INSERT INTO businesses (user_id, category_id, name, slug, short_description, description,
+            `INSERT INTO businesses (user_id, category_id, category_observation, name, slug, short_description, description,
         phone, whatsapp, website, instagram, facebook,
         street, number, complement, neighborhood, city, state, zip_code, status)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-            [userId, request.category_id || null, request.business_name, slug,
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+            [userId, request.category_id || null, request.category_observation || null, request.business_name, slug,
                 request.short_description || null, request.description || null,
                 request.phone || null, request.whatsapp || null, request.website || null,
                 request.instagram || null, request.facebook || null,

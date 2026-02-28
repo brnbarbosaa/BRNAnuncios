@@ -186,7 +186,7 @@ router.post('/requests', async (req, res) => {
     const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket?.remoteAddress || null;
     const {
         contact_name, contact_email, contact_phone,
-        business_name, category_id, short_description, description,
+        business_name, category_id, category_observation, short_description, description,
         phone, whatsapp, website, instagram, facebook,
         street, number, complement, neighborhood, city, state, zip_code,
         plan,
@@ -199,12 +199,12 @@ router.post('/requests', async (req, res) => {
     try {
         const [result] = await db.execute(
             `INSERT INTO requests
-        (contact_name, contact_email, contact_phone, business_name, category_id,
+        (contact_name, contact_email, contact_phone, business_name, category_id, category_observation,
          short_description, description, phone, whatsapp, website, instagram, facebook,
          street, number, complement, neighborhood, city, state, zip_code, ip_address)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
             [
-                contact_name, contact_email, contact_phone || null, business_name, category_id || null,
+                contact_name, contact_email, contact_phone || null, business_name, category_id || null, category_observation || null,
                 short_description || null, description || null, phone || null, whatsapp || null,
                 website || null, instagram || null, facebook || null,
                 street || null, number || null, complement || null, neighborhood || null,

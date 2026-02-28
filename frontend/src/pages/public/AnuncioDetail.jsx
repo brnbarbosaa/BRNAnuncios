@@ -155,7 +155,7 @@ export default function AnuncioDetail() {
                                             title="Localização"
                                             width="100%" height="250" style={{ border: 0 }}
                                             loading="lazy" referrerPolicy="no-referrer-when-downgrade"
-                                            src={`https://www.google.com/maps?q=${mapsQuery}&output=embed`}
+                                            src={`https://www.google.com/maps?q=${encodeURIComponent(mapsQuery)}&output=embed`}
                                         />
                                     </div>
                                 )}

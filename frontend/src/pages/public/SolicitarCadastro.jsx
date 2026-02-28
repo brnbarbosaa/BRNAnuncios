@@ -13,16 +13,20 @@ export default function SolicitarCadastro() {
     const [step, setStep] = useState(1); // 1 = plano, 2 = formulário
     const [selectedPlan, setSelectedPlan] = useState('free');
     const [plans, setPlans] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [form, setForm] = useState({
-        contact_name: '', contact_email: '', contact_phone: '', business_name: '',
+        contact_name: '', contact_email: '', contact_phone: '', business_name: '', category_id: '', category_observation: '',
     });
     const [status, setStatus] = useState(null);
     const [loading, setLoading] = useState(false);
     const [done, setDone] = useState(false);
     const navigate = useNavigate();
 
+    const inp = (k) => ({ className: 'form-input', value: form[k] || '', onChange: e => set(k, e.target.value) });
+
     useEffect(() => {
         api.get('/public/plans').then(r => setPlans(r.data)).catch(() => { });
+        api.get('/public/categories').then(r => setCategories(r.data)).catch(() => { });
     }, []);
 
     const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -219,6 +223,23 @@ export default function SolicitarCadastro() {
                                     <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
                                         ⚠️ O nome do estabelecimento não poderá ser alterado após o cadastro.
                                     </small>
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">Categoria do negócio</label>
+                                    <select className="form-select" value={form.category_id} onChange={e => {
+                                        set('category_id', e.target.value);
+                                        if (e.target.value !== 'outros-id') set('category_observation', '');
+                                    }}>
+                                        <option value="">Selecione...</option>
+                                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    </select>
+                                    {(categories.find(c => c.id === parseInt(form.category_id))?.slug === 'outros' || form.category_observation) && (
+                                        <div style={{ marginTop: 8 }}>
+                                            <input {...inp('category_observation')} placeholder="Especifique a categoria (Outros)..." style={{ borderLeft: '3px solid var(--accent)' }} />
+                                            <small style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>Opcional: preencha caso não encontrou sua categoria na lista.</small>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="form-group">

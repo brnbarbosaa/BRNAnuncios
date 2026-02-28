@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS businesses (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id INT UNSIGNED NOT NULL,
   category_id INT UNSIGNED DEFAULT NULL,
+  category_observation VARCHAR(255) DEFAULT NULL COMMENT 'Texto preenchido caso seja categoria Outros',
   name VARCHAR(200) NOT NULL,
   slug VARCHAR(220) NOT NULL UNIQUE,
   short_description VARCHAR(300) DEFAULT NULL,
@@ -140,6 +141,7 @@ CREATE TABLE IF NOT EXISTS requests (
   -- Dados do negócio
   business_name VARCHAR(200) NOT NULL,
   category_id INT UNSIGNED DEFAULT NULL,
+  category_observation VARCHAR(255) DEFAULT NULL COMMENT 'Texto preenchido caso seja categoria Outros',
   short_description VARCHAR(300) DEFAULT NULL,
   description TEXT DEFAULT NULL,
   phone VARCHAR(20) DEFAULT NULL,

@@ -34,7 +34,7 @@ export default function AdminAnuncioEdit() {
     const [ownerInfo, setOwnerInfo] = useState(null);
     const [socialLinks, setSocialLinks] = useState([]);
 
-    const [form, setForm] = useState({ name: '', user_id: '', category_id: '', short_description: '', description: '', phone: '', whatsapp: '', email: '', website: '', instagram: '', facebook: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '', zip_code: '', tags: '', status: 'active', plan: 'free', featured: false });
+    const [form, setForm] = useState({ name: '', user_id: '', category_id: '', category_observation: '', short_description: '', description: '', phone: '', whatsapp: '', email: '', website: '', instagram: '', facebook: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '', zip_code: '', tags: '', status: 'active', plan: 'free', featured: false });
     const [loading, setLoading] = useState(!isNew);
     const [saving, setSaving] = useState(false);
     const [alert, setAlert] = useState(null);
@@ -46,7 +46,7 @@ export default function AdminAnuncioEdit() {
         if (!isNew) {
             api.get(`/admin/businesses/${id}`).then(r => {
                 const b = r.data.business;
-                setForm({ name: b.name || '', user_id: b.user_id || '', category_id: b.category_id || '', short_description: b.short_description || '', description: b.description || '', phone: b.phone || '', whatsapp: b.whatsapp || '', email: b.email || '', website: b.website || '', instagram: b.instagram || '', facebook: b.facebook || '', street: b.street || '', number: b.number || '', complement: b.complement || '', neighborhood: b.neighborhood || '', city: b.city || '', state: b.state || '', zip_code: b.zip_code || '', tags: b.tags || '', status: b.status || 'active', plan: b.plan || 'free', featured: !!b.featured });
+                setForm({ name: b.name || '', user_id: b.user_id || '', category_id: b.category_id || '', category_observation: b.category_observation || '', short_description: b.short_description || '', description: b.description || '', phone: b.phone || '', whatsapp: b.whatsapp || '', email: b.email || '', website: b.website || '', instagram: b.instagram || '', facebook: b.facebook || '', street: b.street || '', number: b.number || '', complement: b.complement || '', neighborhood: b.neighborhood || '', city: b.city || '', state: b.state || '', zip_code: b.zip_code || '', tags: b.tags || '', status: b.status || 'active', plan: b.plan || 'free', featured: !!b.featured });
                 // Parse social links
                 const sl = Array.isArray(b.social_links) ? b.social_links :
                     typeof b.social_links === 'string' ? (() => { try { return JSON.parse(b.social_links); } catch { return []; } })() : [];
@@ -74,8 +74,26 @@ export default function AdminAnuncioEdit() {
 
     // Social links
     const addSocialLink = () => setSocialLinks(l => [...l, { platform: '', url: '' }]);
-    const updateSocialLink = (idx, key, val) => setSocialLinks(l => l.map((s, i) => i === idx ? { ...s, [key]: val } : s));
+    const updateSocialLink = (index, field, value) => {
+        const newLinks = [...socialLinks];
+        newLinks[index][field] = value;
+        setSocialLinks(newLinks);
+    };
     const removeSocialLink = (idx) => setSocialLinks(l => l.filter((_, i) => i !== idx));
+
+    const saveUser = async (e) => {
+        e.preventDefault();
+        setSaving(true);
+        setAlert(null);
+        try {
+            await api.put(`/admin/users/${ownerInfo.id}`, ownerInfo);
+            setAlert({ type: 'success', msg: 'Usuário atualizado com sucesso!' });
+        } catch (err) {
+            setAlert({ type: 'error', msg: err.response?.data?.error || 'Erro ao atualizar usuário.' });
+        } finally {
+            setSaving(false);
+        }
+    };
 
     const submit = async (e) => {
         e.preventDefault();
@@ -122,25 +140,28 @@ export default function AdminAnuncioEdit() {
 
             {/* Abas */}
             <div style={{ display: 'flex', gap: 0, borderBottom: '2px solid var(--border-light)', marginBottom: 20 }}>
-                {[
-                    { key: 'info', label: 'Informações', icon: 'info' },
-                    { key: 'contact', label: 'Contato & Redes', icon: 'contacts' },
-                    { key: 'address', label: 'Endereço', icon: 'place' },
-                    { key: 'owner', label: 'Proprietário', icon: 'person' },
-                ].map(t => (
-                    <button key={t.key} onClick={() => setTab(t.key)} style={{
-                        display: 'flex', alignItems: 'center', gap: 6,
-                        padding: '10px 18px', border: 'none', cursor: 'pointer',
-                        background: 'transparent',
-                        color: tab === t.key ? 'var(--primary-light)' : 'var(--text-muted)',
-                        fontWeight: tab === t.key ? 700 : 500, fontSize: '0.85rem',
-                        borderBottom: tab === t.key ? '2px solid var(--primary)' : '2px solid transparent',
-                        marginBottom: '-2px', transition: 'all 0.2s',
-                    }}>
-                        <span className="material-icons-round" style={{ fontSize: 16 }}>{t.icon}</span>
-                        {t.label}
-                    </button>
-                ))}
+                {(() => {
+                    const TABS = [
+                        { id: 'info', label: 'Informações', icon: 'article' },
+                        { id: 'contact', label: 'Contato & Redes', icon: 'contact_phone' },
+                        { id: 'address', label: 'Endereço', icon: 'place' },
+                        { id: 'owner', label: 'Proprietário & Usuário', icon: 'manage_accounts' }
+                    ];
+                    return TABS.map(t => (
+                        <button key={t.id} onClick={() => setTab(t.id)} style={{
+                            display: 'flex', alignItems: 'center', gap: 6,
+                            padding: '10px 18px', border: 'none', cursor: 'pointer',
+                            background: 'transparent',
+                            color: tab === t.id ? 'var(--primary-light)' : 'var(--text-muted)',
+                            fontWeight: tab === t.id ? 700 : 500, fontSize: '0.85rem',
+                            borderBottom: tab === t.id ? '2px solid var(--primary)' : '2px solid transparent',
+                            marginBottom: '-2px', transition: 'all 0.2s',
+                        }}>
+                            <span className="material-icons-round" style={{ fontSize: 16 }}>{t.icon}</span>
+                            {t.label}
+                        </button>
+                    ));
+                })()}
             </div>
 
             <form onSubmit={submit}>
@@ -152,14 +173,28 @@ export default function AdminAnuncioEdit() {
                                 <div className="form-group"><label className="form-label">Nome *</label><input {...inp('name')} placeholder="Nome do negócio" required /></div>
                                 <div className="form-group">
                                     <label className="form-label">Categoria</label>
-                                    <select className="form-select" value={form.category_id} onChange={e => set('category_id', e.target.value)}>
+                                    <select className="form-select" value={form.category_id} onChange={e => {
+                                        set('category_id', e.target.value);
+                                        if (e.target.value !== 'outros-id') set('category_observation', '');
+                                    }}>
                                         <option value="">Sem categoria</option>
                                         {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                     </select>
+                                    {/* Mostrar observation se for Outros ou se tiver algo preenchido */}
+                                    {(categories.find(c => c.id === parseInt(form.category_id))?.slug === 'outros' || form.category_observation) && (
+                                        <div style={{ marginTop: 8 }}>
+                                            <input {...inp('category_observation')} placeholder="Especifique a categoria (Outros)..." style={{ borderLeft: '3px solid var(--accent)' }} />
+                                            <small style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>Opcional: Cliente preenche quando não encontra a categoria dele.</small>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <div className="form-group" style={{ marginBottom: 12 }}><label className="form-label">Descrição curta</label><input {...inp('short_description')} placeholder="Até 300 caracteres" maxLength={300} /></div>
-                            <div className="form-group"><label className="form-label">Descrição completa</label><textarea value={form.description} onChange={e => set('description', e.target.value)} className="form-textarea" rows={5} placeholder="Descrição detalhada..." /></div>
+                            <div className="form-group"><label className="form-label">Descrição completa</label><textarea value={form.description} onChange={e => set('description', e.target.value)} className="form-textarea" rows={5} maxLength={2500} placeholder="Descrição detalhada..." />
+                                <div style={{ fontSize: '0.72rem', color: form.description?.length > 2400 ? 'var(--danger)' : 'var(--text-muted)', textAlign: 'right', marginTop: 4 }}>
+                                    {form.description?.length || 0} / 2500 max
+                                </div>
+                            </div>
                         </Section>
 
                         <Section title="Status e Plano" icon="settings">
@@ -289,36 +324,48 @@ export default function AdminAnuncioEdit() {
 
                         {/* Dados do proprietário selecionado */}
                         {ownerInfo && (
-                            <Section title="Informações do Cliente" icon="badge" accent="rgba(99,102,241,0.3)">
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 24px' }}>
-                                    <div>
-                                        <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Nome</div>
-                                        <div style={{ fontWeight: 600 }}>{ownerInfo.name}</div>
+                            <Section title="Informações do Cliente (Usuário)" icon="manage_accounts" accent="rgba(99,102,241,0.3)">
+                                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '14px 24px', marginBottom: 20 }}>
+                                    <div className="form-group">
+                                        <label className="form-label" style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Nome do Cliente</label>
+                                        <input className="form-input" value={ownerInfo.name} onChange={e => setOwnerInfo({ ...ownerInfo, name: e.target.value })} />
                                     </div>
-                                    <div>
-                                        <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>E-mail</div>
-                                        <div>{ownerInfo.email}</div>
+                                    <div className="form-group">
+                                        <label className="form-label" style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase' }}>E-mail de acesso</label>
+                                        <input className="form-input" type="email" value={ownerInfo.email} onChange={e => setOwnerInfo({ ...ownerInfo, email: e.target.value })} />
                                     </div>
-                                    <div>
+                                    <div className="form-group">
+                                        <label className="form-label" style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Telefone do Cliente</label>
+                                        <input {...phoneInputProps(ownerInfo.phone || '', v => setOwnerInfo({ ...ownerInfo, phone: v }))} placeholder="Telefone do associado" />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label" style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Status de Acesso</label>
+                                        <select className="form-select" value={ownerInfo.active ? '1' : '0'} onChange={e => setOwnerInfo({ ...ownerInfo, active: e.target.value === '1' })}>
+                                            <option value="1">✅ Ativo no Painel Cliente</option>
+                                            <option value="0">❌ Inativo (Não consegue logar)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+                                    <div style={{ flex: 1 }}>
                                         <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Função</div>
                                         <span className="badge" style={{ background: ownerInfo.role === 'admin' ? 'rgba(239,68,68,0.15)' : 'rgba(59,130,246,0.15)', color: ownerInfo.role === 'admin' ? 'var(--danger)' : 'var(--info)' }}>
                                             {ownerInfo.role === 'admin' ? 'Administrador' : 'Cliente'}
                                         </span>
                                     </div>
-                                    <div>
-                                        <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Status</div>
-                                        <span style={{ color: ownerInfo.active !== false ? 'var(--success)' : 'var(--danger)', fontWeight: 600 }}>
-                                            {ownerInfo.active !== false ? '✅ Ativo' : '❌ Inativo'}
-                                        </span>
-                                    </div>
-                                    <div>
+                                    <div style={{ flex: 1 }}>
                                         <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Cadastro</div>
                                         <div>{ownerInfo.created_at ? new Date(ownerInfo.created_at).toLocaleDateString('pt-BR') : '—'}</div>
                                     </div>
-                                    <div>
+                                    <div style={{ flex: 1 }}>
                                         <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>ID do Usuário</div>
                                         <div style={{ color: 'var(--text-muted)' }}>#{ownerInfo.id}</div>
                                     </div>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <button type="button" className="btn btn-secondary btn-sm" onClick={saveUser} disabled={saving}>
+                                        {saving ? <div className="spinner" style={{ width: 14, height: 14 }} /> : <><span className="material-icons-round" style={{ fontSize: 16 }}>save</span> Salvar Dados do Usuário</>}
+                                    </button>
                                 </div>
                             </Section>
                         )}

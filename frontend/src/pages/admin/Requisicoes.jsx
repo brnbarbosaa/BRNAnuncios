@@ -77,7 +77,10 @@ export default function AdminRequisicoes() {
                                     <div style={{ fontSize: '0.78rem' }}>{r.contact_email}</div>
                                 </td>
                                 <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{r.business_name}</td>
-                                <td>{r.category_name || '—'}</td>
+                                <td>
+                                    {r.category_name || '—'}
+                                    {r.category_observation && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Obs: {r.category_observation}</div>}
+                                </td>
                                 <td style={{ fontSize: '0.82rem', whiteSpace: 'nowrap' }}>{new Date(r.created_at).toLocaleDateString('pt-BR')}</td>
                                 <td><span className={`badge ${STATUS_CLASS[r.status]}`}>{STATUS_LABELS[r.status]}</span></td>
                                 <td>
@@ -127,6 +130,7 @@ export default function AdminRequisicoes() {
                             {[
                                 ['Contato', `${selected.contact_name} | ${selected.contact_email} | ${selected.contact_phone || '—'}`],
                                 ['Negócio', selected.business_name],
+                                ['Sugestão de Categoria', selected.category_observation || 'Nenhuma informada'],
                                 ['Descrição', selected.short_description || '—'],
                                 ['WhatsApp', selected.whatsapp || '—'],
                                 ['Endereço', [selected.street, selected.number, selected.neighborhood, selected.city, selected.state].filter(Boolean).join(', ') || '—'],

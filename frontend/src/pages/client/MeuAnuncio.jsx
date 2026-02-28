@@ -64,7 +64,7 @@ export default function ClientMeuAnuncio() {
             setSocialLinks(links);
 
             setForm({
-                name: b.name || '', category_id: b.category_id || '',
+                name: b.name || '', category_id: b.category_id || '', category_observation: b.category_observation || '',
                 short_description: b.short_description || '', description: b.description || '',
                 phone: b.phone || '', whatsapp: b.whatsapp || '', email: b.email || '',
                 website: b.website || '', instagram: b.instagram || '', facebook: b.facebook || '',
@@ -169,11 +169,21 @@ export default function ClientMeuAnuncio() {
                             <small style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>🔒 O nome do estabelecimento não pode ser alterado.</small>
                         </div>
                         <div className="form-group">
-                            <label className="form-label">Categoria</label>
-                            <select className="form-select" value={form.category_id || ''} onChange={e => set('category_id', e.target.value)}>
+                            <label className="form-label">
+                                Categoria
+                                {business.status !== 'pending' && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: 8, fontWeight: 'normal' }}>🔒 Não pode ser alterada após análise</span>}
+                            </label>
+                            <select className="form-select" value={form.category_id || ''} onChange={e => set('category_id', e.target.value)} disabled={business.status !== 'pending'} style={{ opacity: business.status !== 'pending' ? 0.7 : 1 }}>
                                 <option value="">Selecione...</option>
                                 {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
+                            {/* Mostrar observation se for Outros ou se já tem algo preenchido */}
+                            {(categories.find(c => c.id === parseInt(form.category_id))?.slug === 'outros' || form.category_observation) && (
+                                <div style={{ marginTop: 8 }}>
+                                    <input {...inp('category_observation')} disabled={business.status !== 'pending'} placeholder="Especifique a categoria..." style={{ borderLeft: '3px solid var(--accent)', opacity: business.status !== 'pending' ? 0.7 : 1 }} />
+                                    <small style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>Opcional: preencha caso não encontrou sua categoria.</small>
+                                </div>
+                            )}
                         </div>
                     </div>
                     <div className="form-group" style={{ marginBottom: 14 }}>
@@ -195,7 +205,10 @@ export default function ClientMeuAnuncio() {
                 <Section title="📝 Descrição Completa" locked={!hasFeat('description')} lockMsg="Disponível nos planos Básico e Premium">
                     <div className="form-group">
                         <label className="form-label">Descrição completa</label>
-                        <textarea {...inp('description')} className="form-textarea" rows={5} placeholder="Conte tudo sobre o seu negócio..." />
+                        <textarea {...inp('description')} className="form-textarea" rows={5} maxLength={2500} placeholder="Conte tudo sobre o seu negócio..." />
+                        <div style={{ fontSize: '0.72rem', color: form.description?.length > 2400 ? 'var(--danger)' : 'var(--text-muted)', textAlign: 'right', marginTop: 4 }}>
+                            {form.description?.length || 0} / 2500 max
+                        </div>
                     </div>
                 </Section>
 
