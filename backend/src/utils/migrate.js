@@ -89,19 +89,38 @@ async function runMigration() {
         };
         await addColIfMissing('plans', 'price_promo', 'DECIMAL(10,2) DEFAULT NULL AFTER price');
 
+        // ── Highlights: sistema de solicitação/aprovação ──────────────────
+        await addColIfMissing('highlights', 'status', "ENUM('pending','approved','rejected') DEFAULT 'approved' AFTER active");
+        await addColIfMissing('highlights', 'requested_at', 'DATETIME DEFAULT NULL AFTER ends_at');
+        await addColIfMissing('highlights', 'reviewed_at', 'DATETIME DEFAULT NULL AFTER requested_at');
+        await addColIfMissing('highlights', 'admin_notes', 'VARCHAR(500) DEFAULT NULL AFTER reviewed_at');
+
+        // ── Businesses: redes sociais dinâmicas ──────────────────────────
+        await addColIfMissing('businesses', 'social_links', 'JSON DEFAULT NULL AFTER facebook');
+
         // Seed dos planos iniciais (só se tabela estiver vazia)
         const [[{ planCount }]] = await conn.execute('SELECT COUNT(*) AS planCount FROM plans');
         if (planCount === 0) {
             console.log('⚙️  [migrate] Criando planos iniciais...');
-            await conn.execute(`
-                INSERT INTO plans (name, slug, description, price, features, highlight, sort_order, contact_link) VALUES
-                ('Gratuito', 'gratuito', 'Ideal para começar! Cadastre seu negócio gratuitamente.', 0.00, '[]', 0, 1, NULL),
-                ('Básico', 'basico', 'Mais visibilidade com galeria de fotos e destaque nos cards.', 49.90, '["gallery"]', 0, 2, NULL),
-                ('Premium', 'premium', 'Experiência completa: galeria, mapa, redes sociais ilimitadas e destaque no carrossel.', 99.90, '["gallery","maps","social_extended","highlights"]', 1, 3, NULL)
-            `);
+            const planFeatures = {
+                free: JSON.stringify(["basic_info", "contact", "hours", "cover_photo"]),
+                basic: JSON.stringify(["basic_info", "contact", "hours", "cover_photo", "description", "social_links", "verified_badge"]),
+                premium: JSON.stringify(["basic_info", "contact", "hours", "cover_photo", "description", "social_links", "verified_badge", "gallery", "address_map", "tags", "statistics", "highlight_request", "search_priority"]),
+            };
+            await conn.execute(
+                'INSERT INTO plans (name, slug, description, price, features, highlight, sort_order) VALUES (?,?,?,?,?,?,?)',
+                ['Gratuito', 'gratuito', 'Cadastre seu negócio e seja encontrado na região.', 0, planFeatures.free, 0, 1]
+            );
+            await conn.execute(
+                'INSERT INTO plans (name, slug, description, price, features, highlight, sort_order) VALUES (?,?,?,?,?,?,?)',
+                ['Básico', 'basico', 'Mais visibilidade com redes sociais, descrição completa e selo verificado.', 49.90, planFeatures.basic, 0, 2]
+            );
+            await conn.execute(
+                'INSERT INTO plans (name, slug, description, price, features, highlight, sort_order) VALUES (?,?,?,?,?,?,?)',
+                ['Premium', 'premium', 'Experiência completa: galeria, mapa, estatísticas, tags e carrossel.', 99.90, planFeatures.premium, 1, 3]
+            );
             console.log('✅ [migrate] Planos iniciais criados.');
         }
-
 
     } catch (err) {
         console.error('❌ [migrate] Erro durante a migração:', err.message);

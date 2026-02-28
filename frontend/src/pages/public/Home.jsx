@@ -47,7 +47,7 @@ export default function Home() {
                 <section className="carousel-section">
                     <div className="carousel-track" style={{ transform: `translateX(-${carouselIdx * 100}%)` }}>
                         {carousel.map((item, i) => {
-                            const bgImg = item.banner_image || item.logo || item.cover_image || null;
+                            const bgImg = item.resolved_image || item.logo || null;
                             return (
                                 <div key={item.id} className="carousel-slide" style={{
                                     backgroundImage: bgImg ? `url(${bgImg})` : undefined,

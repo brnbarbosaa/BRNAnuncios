@@ -4,6 +4,16 @@ import api from '../../services/api';
 
 const DAYS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
+const SOCIAL_ICONS = {
+    instagram: { icon: 'camera_alt', color: '#e1306c', prefix: 'https://instagram.com/' },
+    facebook: { icon: 'thumb_up', color: '#1877f2', prefix: '' },
+    tiktok: { icon: 'music_note', color: '#000', prefix: 'https://tiktok.com/@' },
+    youtube: { icon: 'play_circle', color: '#ff0000', prefix: 'https://youtube.com/' },
+    linkedin: { icon: 'work', color: '#0077b5', prefix: '' },
+    twitter: { icon: 'tag', color: '#1da1f2', prefix: '' },
+    website: { icon: 'language', color: 'var(--primary-light)', prefix: '' },
+};
+
 export default function AnuncioDetail() {
     const { slug } = useParams();
     const [data, setData] = useState(null);
@@ -21,8 +31,15 @@ export default function AnuncioDetail() {
     if (loading) return <div className="page-loading" style={{ paddingTop: 100 }}><div className="spinner" /></div>;
     if (!data) return null;
 
-    const { business: b, images, hours, related } = data;
+    const { business: b, images, hours, related, planFeatures = [] } = data;
+    const hasFeat = (f) => planFeatures.includes(f);
     const allImages = b.logo ? [{ path: b.logo }, ...images] : images;
+    const socialLinks = Array.isArray(b.social_links) ? b.social_links :
+        (typeof b.social_links === 'string' ? (() => { try { return JSON.parse(b.social_links); } catch { return []; } })() : []);
+
+    // Endereço formatado para Google Maps
+    const addressParts = [b.street, b.number, b.neighborhood, b.city, b.state].filter(Boolean);
+    const mapsQuery = encodeURIComponent(addressParts.join(', '));
 
     return (
         <div style={{ paddingTop: 'var(--header-height)', minHeight: '100vh' }}>
@@ -77,18 +94,32 @@ export default function AnuncioDetail() {
 
                         {/* Nome e categoria */}
                         <div style={{ marginBottom: 20 }}>
-                            {b.category_name && (
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: b.category_color || 'var(--primary-light)', border: `1px solid ${b.category_color}44`, padding: '2px 10px', borderRadius: 'var(--radius-full)', marginBottom: 10 }}>
-                                    <span className="material-icons-round" style={{ fontSize: 13 }}>{b.category_icon}</span>
-                                    {b.category_name}
-                                </span>
-                            )}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+                                {b.category_name && (
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: b.category_color || 'var(--primary-light)', border: `1px solid ${b.category_color}44`, padding: '2px 10px', borderRadius: 'var(--radius-full)' }}>
+                                        <span className="material-icons-round" style={{ fontSize: 13 }}>{b.category_icon}</span>
+                                        {b.category_name}
+                                    </span>
+                                )}
+                                {hasFeat('verified_badge') && (
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', fontWeight: 700, color: 'var(--success)', background: 'rgba(16,185,129,0.12)', padding: '3px 10px', borderRadius: 'var(--radius-full)' }}>
+                                        <span className="material-icons-round" style={{ fontSize: 13 }}>verified</span>
+                                        Verificado
+                                    </span>
+                                )}
+                                {b.plan === 'premium' && (
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', fontWeight: 700, color: 'var(--primary-light)', background: 'rgba(99,102,241,0.12)', padding: '3px 10px', borderRadius: 'var(--radius-full)' }}>
+                                        <span className="material-icons-round" style={{ fontSize: 13 }}>workspace_premium</span>
+                                        Premium
+                                    </span>
+                                )}
+                            </div>
                             <h1 style={{ fontSize: '2rem', marginBottom: 8 }}>{b.name}</h1>
                             {b.short_description && <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.6 }}>{b.short_description}</p>}
                         </div>
 
-                        {/* Descrição */}
-                        {b.description && (
+                        {/* Descrição (Basic+) */}
+                        {hasFeat('description') && b.description && (
                             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '24px', marginBottom: 24 }}>
                                 <h3 style={{ marginBottom: 14, fontSize: '1rem' }}>Sobre o estabelecimento</h3>
                                 <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, whiteSpace: 'pre-line' }}>{b.description}</p>
@@ -115,18 +146,28 @@ export default function AnuncioDetail() {
                             </div>
                         )}
 
-                        {/* Endereço */}
-                        {b.street && (
+                        {/* Endereço + Maps (Premium) */}
+                        {hasFeat('address_map') && b.street && (
                             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '24px', marginBottom: 24 }}>
                                 <h3 style={{ marginBottom: 14, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
                                     <span className="material-icons-round" style={{ color: 'var(--primary-light)' }}>place</span>
                                     Endereço
                                 </h3>
-                                <p style={{ color: 'var(--text-secondary)' }}>
+                                <p style={{ color: 'var(--text-secondary)', marginBottom: 16 }}>
                                     {[b.street, b.number, b.complement].filter(Boolean).join(', ')}<br />
                                     {[b.neighborhood, b.city, b.state].filter(Boolean).join(' — ')}
                                     {b.zip_code && ` — CEP: ${b.zip_code}`}
                                 </p>
+                                {mapsQuery && (
+                                    <div style={{ borderRadius: 'var(--radius-md)', overflow: 'hidden', height: 250 }}>
+                                        <iframe
+                                            title="Localização"
+                                            width="100%" height="250" style={{ border: 0 }}
+                                            loading="lazy" referrerPolicy="no-referrer-when-downgrade"
+                                            src={`https://www.google.com/maps?q=${mapsQuery}&output=embed`}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -159,7 +200,24 @@ export default function AnuncioDetail() {
                             </div>
 
                             {/* Redes sociais */}
-                            {(b.instagram || b.facebook || b.website) && (
+                            {socialLinks.length > 0 && hasFeat('social_links') && (
+                                <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-light)', display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                                    {socialLinks.filter(l => l.platform && l.url).map((link, idx) => {
+                                        const si = SOCIAL_ICONS[link.platform] || SOCIAL_ICONS.website;
+                                        const url = link.url.startsWith('http') ? link.url : (si.prefix + link.url.replace('@', ''));
+                                        return (
+                                            <a key={idx} href={url} target="_blank" rel="noreferrer"
+                                                className="btn btn-ghost btn-sm" style={{ color: si.color }}
+                                                title={link.platform}>
+                                                <span className="material-icons-round">{si.icon}</span>
+                                            </a>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {/* Fallback redes sociais antigas */}
+                            {socialLinks.length === 0 && (b.instagram || b.facebook || b.website) && (
                                 <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-light)', display: 'flex', gap: 10, justifyContent: 'center' }}>
                                     {b.website && <a href={b.website} target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm"><span className="material-icons-round">language</span></a>}
                                     {b.instagram && <a href={`https://instagram.com/${b.instagram.replace('@', '')}`} target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm" style={{ color: '#e1306c' }}><span className="material-icons-round">camera_alt</span></a>}
@@ -168,8 +226,8 @@ export default function AnuncioDetail() {
                             )}
                         </div>
 
-                        {/* Tags */}
-                        {b.tags && (
+                        {/* Tags (Premium) */}
+                        {hasFeat('tags') && b.tags && (
                             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '18px 20px' }}>
                                 <h4 style={{ fontSize: '0.82rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 12 }}>Tags</h4>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>

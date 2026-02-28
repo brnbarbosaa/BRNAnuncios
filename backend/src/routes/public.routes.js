@@ -1,23 +1,23 @@
 const router = require('express').Router();
 const db = require('../config/db');
+const { PLAN_FEATURES } = require('../utils/planFeatures');
 
 // GET /api/public/home — dados completos da home
 router.get('/home', async (req, res) => {
     try {
-        // Carrossel — LEFT JOIN garante retorno mesmo se negócio for alterado;
-        // DATE_SUB(NOW(), INTERVAL 3 HOUR) converte UTC→SP para comparar com ends_at
+        // Carrossel — usa COALESCE para pegar banner_image OU logo do negócio
         const [carousel] = await db.execute(
-            `SELECT h.id, h.title, h.subtitle, h.banner_image,
-              b.name, b.slug, b.short_description, b.logo, b.neighborhood,
-              (SELECT bi.path FROM business_images bi WHERE bi.business_id = b.id ORDER BY bi.sort_order ASC LIMIT 1) AS cover_image
+            `SELECT h.id, h.title, h.subtitle,
+              COALESCE(h.banner_image, b.logo) AS resolved_image,
+              b.name, b.slug, b.short_description, b.logo, b.neighborhood
        FROM highlights h
        LEFT JOIN businesses b ON b.id = h.business_id
-       WHERE h.type = 'carousel' AND h.active = 1
+       WHERE h.type = 'carousel' AND h.active = 1 AND h.status = 'approved'
          AND (h.ends_at IS NULL OR h.ends_at > DATE_SUB(NOW(), INTERVAL 3 HOUR))
        ORDER BY h.sort_order ASC LIMIT 10`
         );
 
-        // Cards de destaque rotativos com LEFT JOIN + timezone fix
+        // Cards de destaque rotativos
         const [cards] = await db.execute(
             `SELECT h.id, h.title, h.subtitle,
               b.name, b.slug, b.short_description, b.logo,
@@ -25,20 +25,20 @@ router.get('/home', async (req, res) => {
        FROM highlights h
        LEFT JOIN businesses b ON b.id = h.business_id
        LEFT JOIN categories cat ON cat.id = b.category_id
-       WHERE h.type = 'card' AND h.active = 1
+       WHERE h.type = 'card' AND h.active = 1 AND h.status = 'approved'
          AND (h.ends_at IS NULL OR h.ends_at > DATE_SUB(NOW(), INTERVAL 3 HOUR))
        ORDER BY h.sort_order ASC LIMIT 20`
         );
 
-        // Últimos 12 anúncios ativos
+        // Últimos 12 anúncios ativos (Premium primeiro, depois por data)
         const [latest] = await db.execute(
             `SELECT b.id, b.name, b.slug, b.short_description, b.logo,
-              b.neighborhood, b.city, b.whatsapp, b.phone,
+              b.neighborhood, b.city, b.whatsapp, b.phone, b.plan,
               cat.name AS category_name, cat.color AS category_color, cat.icon AS category_icon
        FROM businesses b
        LEFT JOIN categories cat ON cat.id = b.category_id
        WHERE b.status = 'active'
-       ORDER BY b.created_at DESC LIMIT 12`
+       ORDER BY FIELD(b.plan, 'premium', 'basic', 'free'), b.created_at DESC LIMIT 12`
         );
 
         // Configurações relevantes da home
@@ -74,7 +74,6 @@ router.get('/categories', async (req, res) => {
 
 // GET /api/public/businesses — listagem com paginação e filtros
 router.get('/businesses', async (req, res) => {
-
     try {
         const { q, category, city, page = 1 } = req.query;
         const limit = 12;
@@ -108,7 +107,7 @@ router.get('/businesses', async (req, res) => {
        FROM businesses b
        LEFT JOIN categories cat ON cat.id = b.category_id
        WHERE ${where}
-       ORDER BY b.featured DESC, b.plan DESC, b.created_at DESC
+       ORDER BY FIELD(b.plan, 'premium', 'basic', 'free'), b.featured DESC, b.created_at DESC
        LIMIT ${limit} OFFSET ${offset}`,
             params
         );
@@ -141,12 +140,23 @@ router.get('/businesses/:slug', async (req, res) => {
 
         if (!rows[0]) return res.status(404).json({ error: 'Anúncio não encontrado.' });
         const business = rows[0];
+        const plan = business.plan || 'free';
+        const features = PLAN_FEATURES[plan] || PLAN_FEATURES.free;
 
-        // Galeria
-        const [images] = await db.execute(
-            'SELECT id, path, caption, sort_order FROM business_images WHERE business_id = ? ORDER BY sort_order ASC',
-            [business.id]
-        );
+        // Parse social_links
+        if (business.social_links && typeof business.social_links === 'string') {
+            try { business.social_links = JSON.parse(business.social_links); } catch { business.social_links = []; }
+        }
+
+        // Galeria — só se plano permite
+        let images = [];
+        if (features.includes('gallery')) {
+            const [imgRows] = await db.execute(
+                'SELECT id, path, caption, sort_order FROM business_images WHERE business_id = ? ORDER BY sort_order ASC',
+                [business.id]
+            );
+            images = imgRows;
+        }
 
         // Horários
         const [hours] = await db.execute(
@@ -159,36 +169,19 @@ router.get('/businesses/:slug', async (req, res) => {
 
         // Relacionados (mesma categoria)
         const [related] = await db.execute(
-            `SELECT id, name, slug, short_description, logo, neighborhood
+            `SELECT id, name, slug, short_description, logo, neighborhood, plan
        FROM businesses WHERE category_id = ? AND status = 'active' AND id != ? LIMIT 4`,
             [business.category_id, business.id]
         );
 
-        return res.json({ business, images, hours, related });
+        return res.json({ business, images, hours, related, planFeatures: features });
     } catch (err) {
         console.error('[Public] Business detail error:', err);
         return res.status(500).json({ error: 'Erro ao carregar anúncio.' });
     }
 });
 
-// GET /api/public/categories — todas as categorias ativas
-router.get('/categories', async (req, res) => {
-    try {
-        const [rows] = await db.execute(
-            `SELECT c.id, c.name, c.slug, c.icon, c.color,
-              COUNT(b.id) AS business_count
-       FROM categories c
-       LEFT JOIN businesses b ON b.category_id = c.id AND b.status = 'active'
-       WHERE c.active = 1
-       GROUP BY c.id ORDER BY c.name ASC`
-        );
-        return res.json(rows);
-    } catch (err) {
-        return res.status(500).json({ error: 'Erro ao carregar categorias.' });
-    }
-});
-
-// POST /api/public/requests — solicitação de cadastro pública
+// POST /api/public/requests — solicitação de cadastro pública (com plano)
 router.post('/requests', async (req, res) => {
     const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket?.remoteAddress || null;
     const {
@@ -196,6 +189,7 @@ router.post('/requests', async (req, res) => {
         business_name, category_id, short_description, description,
         phone, whatsapp, website, instagram, facebook,
         street, number, complement, neighborhood, city, state, zip_code,
+        plan,
     } = req.body;
 
     if (!contact_name || !contact_email || !business_name) {

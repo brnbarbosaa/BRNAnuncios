@@ -68,6 +68,29 @@ export default function ClientEstatisticas() {
 
     if (loading) return <div className="page-loading"><div className="spinner" /></div>;
 
+    // Plano bloqueado
+    if (stats?.locked) return (
+        <div>
+            <div className="page-header"><div><h1>📊 Estatísticas</h1><p>Acompanhe o desempenho do seu anúncio</p></div></div>
+            <div style={{
+                background: 'linear-gradient(135deg, rgba(245,158,11,0.08), rgba(99,102,241,0.08))',
+                border: '1px solid var(--border-light)', borderRadius: 'var(--radius-xl)',
+                padding: '48px 32px', textAlign: 'center',
+            }}>
+                <span className="material-icons-round" style={{ fontSize: 56, color: 'var(--accent)', display: 'block', marginBottom: 14 }}>bar_chart</span>
+                <h3 style={{ marginBottom: 8 }}>Painel de Estatísticas</h3>
+                <p style={{ color: 'var(--text-secondary)', maxWidth: 440, margin: '0 auto 12px' }}>
+                    Acompanhe visualizações, gráficos de desempenho e muito mais.
+                    <br />Seu anúncio já tem <strong>{stats.totalViews || 0}</strong> visualizações totais!
+                </p>
+                <span className="badge" style={{ background: 'rgba(99,102,241,0.15)', color: 'var(--primary-light)', padding: '4px 14px', fontWeight: 700 }}>
+                    <span className="material-icons-round" style={{ fontSize: 14, verticalAlign: 'middle', marginRight: 4 }}>workspace_premium</span>
+                    Disponível no plano Premium
+                </span>
+            </div>
+        </div>
+    );
+
     if (error) return (
         <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <span className="material-icons-round" style={{ fontSize: 52, color: 'var(--text-muted)', display: 'block', marginBottom: 16 }}>bar_chart</span>

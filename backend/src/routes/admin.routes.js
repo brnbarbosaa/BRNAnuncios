@@ -359,35 +359,83 @@ router.delete('/categories/:id', async (req, res) => {
 // ═══════════════════════════════════════
 router.get('/highlights', async (req, res) => {
     const [rows] = await db.execute(
-        `SELECT h.*, b.name AS business_name, b.logo FROM highlights h
-     JOIN businesses b ON b.id = h.business_id ORDER BY h.type, h.sort_order ASC`
+        `SELECT h.*, b.name AS business_name, b.logo, b.slug AS business_slug,
+                b.short_description AS business_desc, b.plan AS business_plan,
+                cat.name AS category_name, cat.color AS category_color
+         FROM highlights h
+         JOIN businesses b ON b.id = h.business_id
+         LEFT JOIN categories cat ON cat.id = b.category_id
+         ORDER BY h.status = 'pending' DESC, h.type, h.sort_order ASC`
     );
     return res.json(rows);
 });
 
 router.post('/highlights', async (req, res) => {
-    const { business_id, type, title, subtitle, banner_image, sort_order, active, starts_at, ends_at } = req.body;
+    const { business_id, type, title, subtitle, sort_order, active, starts_at, ends_at } = req.body;
     if (!business_id) return res.status(400).json({ error: 'Negócio obrigatório.' });
     const [r] = await db.execute(
-        'INSERT INTO highlights (business_id, type, title, subtitle, banner_image, sort_order, active, starts_at, ends_at) VALUES (?,?,?,?,?,?,?,?,?)',
-        [business_id, type || 'card', title || null, subtitle || null, banner_image || null, sort_order || 0, active !== false ? 1 : 0, starts_at || null, ends_at || null]
+        'INSERT INTO highlights (business_id, type, title, subtitle, sort_order, active, status, starts_at, ends_at) VALUES (?,?,?,?,?,?,?,?,?)',
+        [business_id, type || 'card', title || null, subtitle || null, sort_order || 0, active !== false ? 1 : 0, 'approved', starts_at || null, ends_at || null]
     );
     await db.execute('UPDATE businesses SET featured = 1 WHERE id = ?', [business_id]);
     return res.status(201).json({ message: 'Destaque criado.', id: r.insertId });
 });
 
-router.post('/highlights/:businessId/upload', uploadBanner, async (req, res) => {
-    if (!req.file) return res.status(400).json({ error: 'Arquivo não enviado.' });
-    if (!req.params.businessId) return res.status(400).json({ error: 'business_id inválido.' });
-    const relativePath = `/uploads/${req.params.businessId}/${req.file.filename}`;
-    return res.json({ message: 'Banner enviado.', path: relativePath });
+// Aprovar solicitação de destaque
+router.put('/highlights/:id/approve', async (req, res) => {
+    try {
+        const [rows] = await db.execute('SELECT * FROM highlights WHERE id = ?', [req.params.id]);
+        if (!rows[0]) return res.status(404).json({ error: 'Destaque não encontrado.' });
+
+        const h = rows[0];
+        const { title, subtitle, days = 7, sort_order } = req.body;
+
+        // Calcula datas
+        const starts_at = new Date();
+        const ends_at = new Date(starts_at.getTime() + days * 24 * 60 * 60 * 1000);
+
+        await db.execute(
+            `UPDATE highlights SET status='approved', active=1, title=?, subtitle=?,
+             sort_order=?, starts_at=?, ends_at=?, reviewed_at=NOW() WHERE id=?`,
+            [title || h.title, subtitle || h.subtitle, sort_order || h.sort_order || 0,
+            starts_at.toISOString().slice(0, 19).replace('T', ' '),
+            ends_at.toISOString().slice(0, 19).replace('T', ' '),
+            req.params.id]
+        );
+
+        await db.execute('UPDATE businesses SET featured = 1 WHERE id = ?', [h.business_id]);
+        await createLog({ userId: req.user.id, userName: req.user.name, action: 'APPROVE_HIGHLIGHT', entity: 'highlight', entityId: parseInt(req.params.id), ip: getIp(req), level: 'success' });
+
+        return res.json({
+            message: `Destaque aprovado! Exibição de ${days} dias.`,
+            starts_at, ends_at
+        });
+    } catch (err) {
+        console.error('[Admin] Approve highlight:', err);
+        return res.status(500).json({ error: 'Erro ao aprovar destaque.' });
+    }
+});
+
+// Recusar solicitação de destaque
+router.put('/highlights/:id/reject', async (req, res) => {
+    try {
+        const { admin_notes } = req.body;
+        await db.execute(
+            `UPDATE highlights SET status='rejected', active=0, admin_notes=?, reviewed_at=NOW() WHERE id=?`,
+            [admin_notes || null, req.params.id]
+        );
+        await createLog({ userId: req.user.id, userName: req.user.name, action: 'REJECT_HIGHLIGHT', entity: 'highlight', entityId: parseInt(req.params.id), ip: getIp(req), level: 'warning' });
+        return res.json({ message: 'Solicitação recusada.' });
+    } catch (err) {
+        return res.status(500).json({ error: 'Erro ao recusar destaque.' });
+    }
 });
 
 router.put('/highlights/:id', async (req, res) => {
-    const { type, title, subtitle, banner_image, sort_order, active, starts_at, ends_at } = req.body;
+    const { type, title, subtitle, sort_order, active, starts_at, ends_at } = req.body;
     await db.execute(
-        'UPDATE highlights SET type=?, title=?, subtitle=?, banner_image=?, sort_order=?, active=?, starts_at=?, ends_at=? WHERE id=?',
-        [type, title || null, subtitle || null, banner_image || null, sort_order || 0, active ? 1 : 0, starts_at || null, ends_at || null, req.params.id]
+        'UPDATE highlights SET type=?, title=?, subtitle=?, sort_order=?, active=?, starts_at=?, ends_at=? WHERE id=?',
+        [type, title || null, subtitle || null, sort_order || 0, active ? 1 : 0, starts_at || null, ends_at || null, req.params.id]
     );
     return res.json({ message: 'Destaque atualizado.' });
 });

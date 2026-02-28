@@ -3,9 +3,23 @@ import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 import { phoneInputProps } from '../../utils/phoneMask';
 
-// ── Definido FORA do componente para evitar re-criação a cada render ──────────
-// (se definido dentro, React recria o tipo a cada keystroke → perde o foco)
-function Section({ title, children }) {
+// ── Definido FORA do componente ──────────────────────────────
+function Section({ title, children, locked, lockMsg }) {
+    if (locked) return (
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '24px', marginBottom: 20, opacity: 0.7 }}>
+            <h3 style={{ marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--border-light)', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                {title}
+                <span className="material-icons-round" style={{ fontSize: 18, color: 'var(--accent)' }}>lock</span>
+            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 'var(--radius-md)' }}>
+                <span className="material-icons-round" style={{ color: 'var(--accent)', fontSize: 22 }}>workspace_premium</span>
+                <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.88rem', marginBottom: 2 }}>{lockMsg || 'Disponível no plano superior'}</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Faça upgrade para desbloquear esta funcionalidade</div>
+                </div>
+            </div>
+        </div>
+    );
     return (
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '24px', marginBottom: 20 }}>
             <h3 style={{ marginBottom: 18, paddingBottom: 12, borderBottom: '1px solid var(--border-light)', fontSize: '1rem' }}>{title}</h3>
@@ -16,6 +30,16 @@ function Section({ title, children }) {
 
 const UFS = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
 
+const SOCIAL_PLATFORMS = [
+    { key: 'instagram', label: 'Instagram', icon: 'camera_alt', color: '#e1306c', prefix: 'https://instagram.com/' },
+    { key: 'facebook', label: 'Facebook', icon: 'thumb_up', color: '#1877f2', prefix: '' },
+    { key: 'tiktok', label: 'TikTok', icon: 'music_note', color: '#000', prefix: 'https://tiktok.com/@' },
+    { key: 'youtube', label: 'YouTube', icon: 'play_circle', color: '#ff0000', prefix: 'https://youtube.com/' },
+    { key: 'linkedin', label: 'LinkedIn', icon: 'work', color: '#0077b5', prefix: 'https://linkedin.com/in/' },
+    { key: 'twitter', label: 'X / Twitter', icon: 'tag', color: '#1da1f2', prefix: 'https://x.com/' },
+    { key: 'website', label: 'Site', icon: 'language', color: 'var(--primary-light)', prefix: '' },
+];
+
 export default function ClientMeuAnuncio() {
     const { user } = useAuth();
     const [business, setBusiness] = useState(null);
@@ -25,6 +49,9 @@ export default function ClientMeuAnuncio() {
     const [saving, setSaving] = useState(false);
     const [alert, setAlert] = useState(null);
     const [tagInput, setTagInput] = useState('');
+    const [planFeatures, setPlanFeatures] = useState([]);
+    const [planLimits, setPlanLimits] = useState({});
+    const [socialLinks, setSocialLinks] = useState([]);
 
     useEffect(() => {
         Promise.all([
@@ -34,6 +61,17 @@ export default function ClientMeuAnuncio() {
             const b = bRes.data.business;
             setBusiness(b);
             setCategories(cRes.data);
+            setPlanFeatures(bRes.data.planFeatures || []);
+            setPlanLimits(bRes.data.planLimits || {});
+
+            // Parse social_links
+            let links = [];
+            if (b.social_links) {
+                links = Array.isArray(b.social_links) ? b.social_links :
+                    (typeof b.social_links === 'string' ? JSON.parse(b.social_links) : []);
+            }
+            setSocialLinks(links);
+
             setForm({
                 name: b.name || '', category_id: b.category_id || '',
                 short_description: b.short_description || '', description: b.description || '',
@@ -46,8 +84,24 @@ export default function ClientMeuAnuncio() {
         }).catch(() => { }).finally(() => setLoading(false));
     }, []);
 
+    const hasFeat = (f) => planFeatures.includes(f);
     const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
     const inp = (k) => ({ value: form[k] || '', onChange: e => set(k, e.target.value), className: 'form-input' });
+
+    // ── Redes Sociais Dinâmicas ─────────────────────────────────
+    const addSocialLink = () => {
+        const limit = planLimits.social_links || 5;
+        if (socialLinks.length >= limit) return;
+        setSocialLinks([...socialLinks, { platform: '', url: '' }]);
+    };
+    const updateSocialLink = (idx, field, value) => {
+        const newLinks = [...socialLinks];
+        newLinks[idx] = { ...newLinks[idx], [field]: value };
+        setSocialLinks(newLinks);
+    };
+    const removeSocialLink = (idx) => {
+        setSocialLinks(socialLinks.filter((_, i) => i !== idx));
+    };
 
     // ── Tags como chips ──────────────────────────────────────────────────────
     const tags = (form.tags || '').split(',').map(t => t.trim()).filter(Boolean);
@@ -76,7 +130,7 @@ export default function ClientMeuAnuncio() {
         e.preventDefault();
         setSaving(true);
         try {
-            await api.put('/client/business', form);
+            await api.put('/client/business', { ...form, social_links: socialLinks });
             setAlert({ type: 'success', msg: '✅ Dados salvos com sucesso!' });
             window.scrollTo(0, 0);
         } catch (err) { setAlert({ type: 'error', msg: err.message }); }
@@ -92,18 +146,30 @@ export default function ClientMeuAnuncio() {
         </div>
     );
 
+    const plan = business.plan || 'free';
+    const planLabel = plan === 'premium' ? '💎 Premium' : plan === 'basic' ? '⭐ Básico' : '🆓 Gratuito';
+
     return (
         <div>
             <div className="page-header">
-                <div><h1>Meu Anúncio</h1><p>Mantenha as informações do seu negócio atualizadas</p></div>
-                <button className="btn btn-primary" onClick={save} disabled={saving}>
-                    {saving ? <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} /> : <><span className="material-icons-round">save</span> Salvar</>}
-                </button>
+                <div>
+                    <h1>Meu Anúncio</h1>
+                    <p>Mantenha as informações do seu negócio atualizadas</p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span className="badge" style={{ background: plan === 'premium' ? 'rgba(99,102,241,0.15)' : plan === 'basic' ? 'rgba(245,158,11,0.15)' : 'var(--bg-surface)', color: plan === 'premium' ? 'var(--primary-light)' : plan === 'basic' ? 'var(--accent)' : 'var(--text-muted)', padding: '4px 14px', fontWeight: 700 }}>
+                        {planLabel}
+                    </span>
+                    <button className="btn btn-primary" onClick={save} disabled={saving}>
+                        {saving ? <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} /> : <><span className="material-icons-round">save</span> Salvar</>}
+                    </button>
+                </div>
             </div>
 
             {alert && <div className={`alert alert-${alert.type}`} style={{ marginBottom: 20 }}><span className="material-icons-round">{alert.type === 'success' ? 'check_circle' : 'error'}</span>{alert.msg}</div>}
 
             <form onSubmit={save}>
+                {/* ── Informações Básicas (todos os planos) ── */}
                 <Section title="📋 Informações Básicas">
                     <div className="form-grid cols-2" style={{ marginBottom: 14 }}>
                         <div className="form-group">
@@ -123,24 +189,57 @@ export default function ClientMeuAnuncio() {
                         <label className="form-label">Descrição curta</label>
                         <input {...inp('short_description')} placeholder="Resumo em até 300 caracteres" maxLength={300} />
                     </div>
+                </Section>
+
+                {/* ── Contato (todos os planos) ── */}
+                <Section title="📞 Contato">
+                    <div className="form-grid cols-3">
+                        <div className="form-group"><label className="form-label">Telefone</label><input {...phoneInputProps(form.phone, v => set('phone', v))} /></div>
+                        <div className="form-group"><label className="form-label">WhatsApp</label><input {...phoneInputProps(form.whatsapp, v => set('whatsapp', v))} /></div>
+                        <div className="form-group"><label className="form-label">E-mail</label><input {...inp('email')} type="email" placeholder="contato@..." /></div>
+                    </div>
+                </Section>
+
+                {/* ── Descrição completa (Básico+) ── */}
+                <Section title="📝 Descrição Completa" locked={!hasFeat('description')} lockMsg="Disponível nos planos Básico e Premium">
                     <div className="form-group">
                         <label className="form-label">Descrição completa</label>
                         <textarea {...inp('description')} className="form-textarea" rows={5} placeholder="Conte tudo sobre o seu negócio..." />
                     </div>
                 </Section>
 
-                <Section title="📞 Contato e Redes Sociais">
-                    <div className="form-grid cols-3">
-                        <div className="form-group"><label className="form-label">Telefone</label><input {...phoneInputProps(form.phone, v => set('phone', v))} /></div>
-                        <div className="form-group"><label className="form-label">WhatsApp</label><input {...phoneInputProps(form.whatsapp, v => set('whatsapp', v))} /></div>
-                        <div className="form-group"><label className="form-label">E-mail</label><input {...inp('email')} type="email" placeholder="contato@..." /></div>
-                        <div className="form-group"><label className="form-label">Website</label><input {...inp('website')} placeholder="https://..." /></div>
-                        <div className="form-group"><label className="form-label">Instagram</label><input {...inp('instagram')} placeholder="@usuario" /></div>
-                        <div className="form-group"><label className="form-label">Facebook</label><input {...inp('facebook')} placeholder="Link da página" /></div>
+                {/* ── Redes Sociais (Básico+) ── */}
+                <Section title="🌐 Redes Sociais" locked={!hasFeat('social_links')} lockMsg="Disponível nos planos Básico e Premium">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
+                        {socialLinks.map((link, idx) => (
+                            <div key={idx} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                <select className="form-select" value={link.platform} onChange={e => updateSocialLink(idx, 'platform', e.target.value)}
+                                    style={{ width: 160, flexShrink: 0 }}>
+                                    <option value="">Selecione...</option>
+                                    {SOCIAL_PLATFORMS.map(p => (
+                                        <option key={p.key} value={p.key}>{p.label}</option>
+                                    ))}
+                                </select>
+                                <input className="form-input" value={link.url} onChange={e => updateSocialLink(idx, 'url', e.target.value)}
+                                    placeholder={link.platform ? SOCIAL_PLATFORMS.find(p => p.key === link.platform)?.prefix + '...' : 'Link / @usuario'}
+                                    style={{ flex: 1 }} />
+                                <button type="button" className="btn btn-ghost btn-sm" onClick={() => removeSocialLink(idx)}
+                                    style={{ color: 'var(--danger)', flexShrink: 0 }}>
+                                    <span className="material-icons-round" style={{ fontSize: 18 }}>close</span>
+                                </button>
+                            </div>
+                        ))}
                     </div>
+                    {socialLinks.length < (planLimits.social_links || 5) && (
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={addSocialLink}>
+                            <span className="material-icons-round" style={{ fontSize: 16 }}>add</span>
+                            Adicionar rede social ({socialLinks.length}/{planLimits.social_links || 5})
+                        </button>
+                    )}
                 </Section>
 
-                <Section title="📍 Endereço">
+                {/* ── Endereço (Premium) ── */}
+                <Section title="📍 Endereço" locked={!hasFeat('address_map')} lockMsg="Disponível no plano Premium — inclui Google Maps na página pública">
                     <div className="form-grid cols-3">
                         <div className="form-group" style={{ gridColumn: 'span 2' }}><label className="form-label">Rua / Avenida</label><input {...inp('street')} /></div>
                         <div className="form-group"><label className="form-label">Número</label><input {...inp('number')} /></div>
@@ -158,7 +257,8 @@ export default function ClientMeuAnuncio() {
                     </div>
                 </Section>
 
-                <Section title="🏷️ Tags / Palavras-chave">
+                {/* ── Tags (Premium) ── */}
+                <Section title="🏷️ Tags / Palavras-chave" locked={!hasFeat('tags')} lockMsg="Disponível no plano Premium — melhora a busca do seu negócio">
                     <div className="form-group">
                         <label className="form-label">
                             Palavras-chave para busca
@@ -169,7 +269,7 @@ export default function ClientMeuAnuncio() {
 
                         {/* Chips */}
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '10px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', minHeight: 48, alignItems: 'center', cursor: 'text' }}
-                            onClick={() => document.getElementById('tag-input').focus()}>
+                            onClick={() => document.getElementById('tag-input')?.focus()}>
                             {tags.map(t => (
                                 <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: 'var(--primary-light)', borderRadius: 'var(--radius-full)', padding: '2px 10px', fontSize: '0.8rem', fontWeight: 600 }}>
                                     {t}
