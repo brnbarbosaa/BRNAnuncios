@@ -49,10 +49,12 @@ export default function Home() {
                         {carousel.map((item, i) => {
                             const bgImg = item.resolved_image || item.logo || null;
                             return (
-                                <div key={item.id} className="carousel-slide" style={{
-                                    backgroundImage: bgImg ? `url(${bgImg})` : undefined,
-                                    background: !bgImg ? 'radial-gradient(ellipse at 60% 30%, rgba(99,102,241,0.35) 0%, var(--bg-base) 70%)' : undefined,
-                                }}>
+                                <div key={item.id} className="carousel-slide">
+                                    {bgImg ? (
+                                        <img src={bgImg} alt={item.name || ''} className="carousel-bg-img" />
+                                    ) : (
+                                        <div className="carousel-bg-fallback" />
+                                    )}
                                     <div className="carousel-overlay" />
                                     <div className="carousel-content container">
                                         <div className="carousel-text">
