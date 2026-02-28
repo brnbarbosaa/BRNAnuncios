@@ -1,18 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import SocialIcon, { SOCIAL_PREFIXES } from '../../components/SocialIcons';
 
 const DAYS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-
-const SOCIAL_ICONS = {
-    instagram: { icon: 'camera_alt', color: '#e1306c', prefix: 'https://instagram.com/' },
-    facebook: { icon: 'thumb_up', color: '#1877f2', prefix: '' },
-    tiktok: { icon: 'music_note', color: '#000', prefix: 'https://tiktok.com/@' },
-    youtube: { icon: 'play_circle', color: '#ff0000', prefix: 'https://youtube.com/' },
-    linkedin: { icon: 'work', color: '#0077b5', prefix: '' },
-    twitter: { icon: 'tag', color: '#1da1f2', prefix: '' },
-    website: { icon: 'language', color: 'var(--primary-light)', prefix: '' },
-};
 
 export default function AnuncioDetail() {
     const { slug } = useParams();
@@ -203,13 +194,13 @@ export default function AnuncioDetail() {
                             {socialLinks.length > 0 && hasFeat('social_links') && (
                                 <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-light)', display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                                     {socialLinks.filter(l => l.platform && l.url).map((link, idx) => {
-                                        const si = SOCIAL_ICONS[link.platform] || SOCIAL_ICONS.website;
-                                        const url = link.url.startsWith('http') ? link.url : (si.prefix + link.url.replace('@', ''));
+                                        const prefix = SOCIAL_PREFIXES[link.platform] || '';
+                                        const url = link.url.startsWith('http') ? link.url : (prefix + link.url.replace('@', ''));
                                         return (
                                             <a key={idx} href={url} target="_blank" rel="noreferrer"
-                                                className="btn btn-ghost btn-sm" style={{ color: si.color }}
+                                                className="btn btn-ghost btn-sm"
                                                 title={link.platform}>
-                                                <span className="material-icons-round">{si.icon}</span>
+                                                <SocialIcon platform={link.platform} size={20} />
                                             </a>
                                         );
                                     })}

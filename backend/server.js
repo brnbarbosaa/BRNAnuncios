@@ -33,12 +33,12 @@ const globalLimiter = rateLimit({
     legacyHeaders: false,
 });
 
-// Rate limiting específico para login (mais restritivo)
-const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 20,
-    message: { error: 'Muitas tentativas de login. Aguarde 15 minutos.' },
-});
+// Rate limiting específico para login — DESATIVADO TEMPORARIAMENTE
+// const loginLimiter = rateLimit({
+//     windowMs: 15 * 60 * 1000,
+//     max: 20,
+//     message: { error: 'Muitas tentativas de login. Aguarde 15 minutos.' },
+// });
 
 app.use(globalLimiter);
 app.use(express.json({ limit: '10mb' }));
@@ -49,7 +49,7 @@ const UPLOADS_PATH = process.env.UPLOADS_PATH || '/app/uploads';
 app.use('/uploads', express.static(UPLOADS_PATH));
 
 // ─── Rotas da API ─────────────────────────────────────────────────────────────
-app.use('/api/auth', loginLimiter, require('./src/routes/auth.routes'));
+app.use('/api/auth', require('./src/routes/auth.routes'));
 app.use('/api/public', require('./src/routes/public.routes'));
 app.use('/api/client', require('./src/routes/client.routes'));
 app.use('/api/admin', require('./src/routes/admin.routes'));

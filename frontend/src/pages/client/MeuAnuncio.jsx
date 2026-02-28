@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 import { phoneInputProps } from '../../utils/phoneMask';
+import SocialIcon, { SOCIAL_LABELS, SOCIAL_PREFIXES, SOCIAL_PLATFORMS as PLATFORMS_LIST } from '../../components/SocialIcons';
 
 // ── Definido FORA do componente ──────────────────────────────
 function Section({ title, children, locked, lockMsg }) {
@@ -29,16 +30,6 @@ function Section({ title, children, locked, lockMsg }) {
 }
 
 const UFS = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
-
-const SOCIAL_PLATFORMS = [
-    { key: 'instagram', label: 'Instagram', icon: 'camera_alt', color: '#e1306c', prefix: 'https://instagram.com/' },
-    { key: 'facebook', label: 'Facebook', icon: 'thumb_up', color: '#1877f2', prefix: '' },
-    { key: 'tiktok', label: 'TikTok', icon: 'music_note', color: '#000', prefix: 'https://tiktok.com/@' },
-    { key: 'youtube', label: 'YouTube', icon: 'play_circle', color: '#ff0000', prefix: 'https://youtube.com/' },
-    { key: 'linkedin', label: 'LinkedIn', icon: 'work', color: '#0077b5', prefix: 'https://linkedin.com/in/' },
-    { key: 'twitter', label: 'X / Twitter', icon: 'tag', color: '#1da1f2', prefix: 'https://x.com/' },
-    { key: 'website', label: 'Site', icon: 'language', color: 'var(--primary-light)', prefix: '' },
-];
 
 export default function ClientMeuAnuncio() {
     const { user } = useAuth();
@@ -213,15 +204,16 @@ export default function ClientMeuAnuncio() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
                         {socialLinks.map((link, idx) => (
                             <div key={idx} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                {link.platform && <SocialIcon platform={link.platform} size={20} />}
                                 <select className="form-select" value={link.platform} onChange={e => updateSocialLink(idx, 'platform', e.target.value)}
                                     style={{ width: 160, flexShrink: 0 }}>
                                     <option value="">Selecione...</option>
-                                    {SOCIAL_PLATFORMS.map(p => (
-                                        <option key={p.key} value={p.key}>{p.label}</option>
+                                    {PLATFORMS_LIST.map(key => (
+                                        <option key={key} value={key}>{SOCIAL_LABELS[key]}</option>
                                     ))}
                                 </select>
                                 <input className="form-input" value={link.url} onChange={e => updateSocialLink(idx, 'url', e.target.value)}
-                                    placeholder={link.platform ? SOCIAL_PLATFORMS.find(p => p.key === link.platform)?.prefix + '...' : 'Link / @usuario'}
+                                    placeholder={link.platform ? (SOCIAL_PREFIXES[link.platform] || '') + '...' : 'Link / @usuario'}
                                     style={{ flex: 1 }} />
                                 <button type="button" className="btn btn-ghost btn-sm" onClick={() => removeSocialLink(idx)}
                                     style={{ color: 'var(--danger)', flexShrink: 0 }}>

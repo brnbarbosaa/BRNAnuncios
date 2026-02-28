@@ -157,18 +157,19 @@ router.get('/businesses/:id', async (req, res) => {
 router.post('/businesses', async (req, res) => {
     try {
         const { name, user_id, category_id, short_description, description, phone, whatsapp, email,
-            website, instagram, facebook, street, number, complement, neighborhood, city, state, zip_code, tags, status, plan } = req.body;
+            website, instagram, facebook, street, number, complement, neighborhood, city, state, zip_code, tags, status, plan, social_links } = req.body;
         if (!name || !user_id) return res.status(400).json({ error: 'Nome e usuário são obrigatórios.' });
         const slug = slugify(name, { lower: true, strict: true });
+        const slJson = social_links ? JSON.stringify(social_links) : null;
         const [result] = await db.execute(
             `INSERT INTO businesses (user_id, category_id, name, slug, short_description, description,
         phone, whatsapp, email, website, instagram, facebook,
-        street, number, complement, neighborhood, city, state, zip_code, tags, status, plan)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        street, number, complement, neighborhood, city, state, zip_code, tags, status, plan, social_links)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
             [user_id, category_id || null, name, slug, short_description || null, description || null,
                 phone || null, whatsapp || null, email || null, website || null, instagram || null, facebook || null,
                 street || null, number || null, complement || null, neighborhood || null, city || null,
-                state || null, zip_code || null, tags || null, status || 'active', plan || 'free']
+                state || null, zip_code || null, tags || null, status || 'active', plan || 'free', slJson]
         );
         await createLog({ userId: req.user.id, userName: req.user.name, action: 'CREATE_BUSINESS', entity: 'business', entityId: result.insertId, ip: getIp(req), level: 'success' });
         return res.status(201).json({ message: 'Negócio criado.', id: result.insertId });
@@ -182,18 +183,19 @@ router.put('/businesses/:id', async (req, res) => {
     try {
         const { name, category_id, short_description, description, phone, whatsapp, email,
             website, instagram, facebook, street, number, complement, neighborhood, city, state, zip_code,
-            tags, status, plan, featured } = req.body;
+            tags, status, plan, featured, social_links } = req.body;
         const slug = slugify(name, { lower: true, strict: true });
+        const slJson = social_links ? JSON.stringify(social_links) : null;
         await db.execute(
             `UPDATE businesses SET name=?, slug=?, category_id=?, short_description=?, description=?,
         phone=?, whatsapp=?, email=?, website=?, instagram=?, facebook=?,
         street=?, number=?, complement=?, neighborhood=?, city=?, state=?, zip_code=?,
-        tags=?, status=?, plan=?, featured=?, updated_at=NOW()
+        tags=?, status=?, plan=?, featured=?, social_links=?, updated_at=NOW()
        WHERE id=?`,
             [name, slug, category_id || null, short_description || null, description || null,
                 phone || null, whatsapp || null, email || null, website || null, instagram || null, facebook || null,
                 street || null, number || null, complement || null, neighborhood || null, city || null,
-                state || null, zip_code || null, tags || null, status, plan || 'free', featured ? 1 : 0, req.params.id]
+                state || null, zip_code || null, tags || null, status, plan || 'free', featured ? 1 : 0, slJson, req.params.id]
         );
         await createLog({ userId: req.user.id, userName: req.user.name, action: 'UPDATE_BUSINESS', entity: 'business', entityId: parseInt(req.params.id), ip: getIp(req), level: 'info' });
         return res.json({ message: 'Negócio atualizado.' });
