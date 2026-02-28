@@ -79,8 +79,8 @@ export default function Home() {
                                         <div className="carousel-bg-fallback" />
                                     )}
                                     <div className="carousel-overlay" />
-                                    <div className="carousel-content container">
-                                        <div className="carousel-text">
+                                    <div className="carousel-content container" style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+                                        <div className="carousel-text" style={{ padding: '0 20px' }}>
                                             <span className="carousel-label">Destaque</span>
                                             <h1>{item.title || item.name}</h1>
                                             <p>{item.subtitle || item.short_description}</p>
@@ -227,8 +227,8 @@ export default function Home() {
                         </div>
                         <div className="cards-scroll" ref={latestScrollRef} style={{ paddingBottom: 16, display: 'flex', alignItems: 'stretch' }}>
                             {latest.map(b => (
-                                <div key={b.id} style={{ minWidth: 280, flexShrink: 0, display: 'flex', height: '100%' }}>
-                                    <BusinessCard business={b} style={{ flex: 1, height: '100%' }} />
+                                <div key={b.id} style={{ minWidth: 280, flexShrink: 0, display: 'flex', height: 'auto' }}>
+                                    <BusinessCard business={b} style={{ flex: 1, display: 'flex', flexDirection: 'column' }} />
                                 </div>
                             ))}
                         </div>
